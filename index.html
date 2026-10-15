@@ -2,7 +2,12 @@
 <html lang="nl">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#4f46e5" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Mijn Agenda" />
 <title>Mijn Agenda</title>
 <style>
 :root {
@@ -48,17 +53,14 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .grid-head .dh { padding:8px 0; text-align:center; }
 .dh .dw { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--sub); }
 .dh .dn { font-size:14px; font-weight:600; }
-.dh .dn .tdy { font-size:11px; font-weight:400; margin-left:4px; color:var(--accent); }
+.dh .dn .todaycircle { display:inline-grid; place-items:center; min-width:22px; height:22px; border-radius:50%; background:var(--accent); color:#fff; }
 .is-today { background:var(--today-bg); }
 .grid-body { display:grid; grid-template-columns:56px repeat(7,1fr); }
 @media(max-width:999px){
   .grid-head, .grid-body { grid-template-columns:40px repeat(7,1fr); }
-  .grid-body { overflow:hidden; }
-  body { overflow:hidden; height:100dvh; display:flex; flex-direction:column; }
-  .layout { flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:8px; }
-  header { flex:none; }
-  .grid-head { position:sticky; top:0; z-index:10; background:var(--panel); }
-  .alldayrow { top:0; }
+  .hwrap { padding:6px 8px; gap:6px; }
+  .layout { padding:8px; }
+  .sidecol { display:none; }
   .evt { font-size:10px; }
   .hour-label { font-size:9px; }
 }
@@ -398,11 +400,9 @@ function render(){
   var h='<header><div class="hwrap">'
    +'<button class="todaybadge" data-nav="0" title="Vandaag">'+today.getDate()+'</button>';
   h+='<div class="sub small">'+(S.view==="week"
-      ? esc(nlDate(weekDays[0]))+" – "+esc(nlDate(weekDays[6]))+' <span class="faint">· '+Math.round(weekTotal/60)+'u gepland</span>'
+      ? weekDays[0].getDate()+" "+weekDays[0].toLocaleDateString("nl-NL",{month:"short"})+" – "+weekDays[6].getDate()+" "+weekDays[6].toLocaleDateString("nl-NL",{month:"short"})+' <span class="faint">· '+Math.round(weekTotal/60)+'u</span>'
       : esc(S.monthCursor.toLocaleDateString("nl-NL",{month:"long",year:"numeric"})))+'</div>';
   h+='<div class="row" style="margin-left:auto">'+(INFO?'<span class="toast">'+esc(INFO)+'</span>':"")
-   +'<button class="btn" title="Abonnementen verversen" data-syncall="1">↻</button>'
-   +'<button class="btn" title="Donkere modus" data-theme="1">'+(dark?"☀️":"🌙")+'</button>'
    +'<button class="hamburger" data-drawer="1">☰</button></div></div></header>';
 
   h+='<div class="layout"><div>';
@@ -410,7 +410,7 @@ function render(){
     h+='<div class="card weekcard"><div class="grid-head"><div></div>';
     weekDays.forEach(function(d,i){
       var isT=sameDay(d,today);
-      h+='<div class="dh'+(isT?" is-today":"")+'"><div class="dw">'+DAYS[i]+'</div><div class="dn">'+d.getDate()+(isT?'<span class="tdy">vandaag</span>':"")+'</div></div>';
+      h+='<div class="dh'+(isT?" is-today":"")+'"><div class="dw">'+DAYS[i]+'</div><div class="dn">'+(isT?'<span class="todaycircle">'+d.getDate()+'</span>':d.getDate())+'</div></div>';
     });
     h+='</div><div class="alldayrow"><div class="adc-label">Dag</div>';
     weekDays.forEach(function(d){
@@ -457,7 +457,7 @@ function render(){
       var d2=addDays(first,i), inM=d2.getMonth()===S.monthCursor.getMonth(), isT=sameDay(d2,today), dk2=dateKey(d2);
       var list=occsFor(dk2);
       h+='<div class="mcell'+(inM?"":" off")+(isT?" is-today":"")+'" data-mday="'+dk2+'">'
-       +'<div class="d">'+d2.getDate()+(isT?' <span style="font-size:10px;font-weight:400">vandaag</span>':"")+'</div>';
+       +'<div class="d">'+(isT?'<span class="todaycircle" style="font-size:11px;min-width:18px;height:18px;">'+d2.getDate()+'</span>':d2.getDate())+'</div>';
       list.slice(0,4).forEach(function(e){
         var col=colOf(calById(e.calId));
         h+='<div class="mchip" style="background:'+col.bg+'" data-evt="'+e.id+'" data-occ="'+dk2+'">'+(e.allDay?"📌 "+esc(e.title):fmtTime(e.start)+' '+esc(e.title))+'</div>';
@@ -472,7 +472,9 @@ function render(){
   /* sidebar */
   h+=(DRAWER?'<div class="drawer-back" data-drawer-close="1"></div><div class="drawer"><button class="close" data-drawer-close="1">✕</button><h3>Menu</h3>'
    +'<div class="row" style="margin-bottom:12px"><button class="btn'+(S.view==="week"?" on":"")+'" data-view="week">Week</button>'
-   +'<button class="btn'+(S.view==="month"?" on":"")+'" data-view="month">Maand</button></div>':'<aside>')+'<div class="card pad"><div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="section-title">Agenda\u2019s</span>'
+   +'<button class="btn'+(S.view==="month"?" on":"")+'" data-view="month">Maand</button>'
+   +'<button class="btn" data-theme="1" title="Donkere/lichte modus">'+(dark?"☀️":"🌙")+'</button>'
+   +'<button class="btn" data-syncall="1" title="Agenda\u2019s verversen">↻</button></div>':'<aside class="sidecol">')+'<div class="card pad"><div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="section-title">Agenda\u2019s</span>'
    +'<button class="btn" style="font-size:12px" data-newcal="1">+ nieuw</button></div>';
   S.cals.forEach(function(c){
     var col=CAL_COLORS[c.color%CAL_COLORS.length];
@@ -631,8 +633,8 @@ function render(){
   var nc=document.getElementById("newcal");
   if(nc){ nc.onkeydown=function(ev){ if(ev.key==="Enter" && this.value.trim()) addCal(this.value); }; setTimeout(function(){ nc.focus(); },50); }
   /* allday-rij net onder de sticky dagheaders laten plakken */
-  var gh=document.querySelector(".grid-head"), ar=document.querySelector(".alldayrow");
-  if(gh && ar){ ar.style.top = gh.offsetHeight + "px"; }
+  var hd=document.querySelector("header"), ar=document.querySelector(".alldayrow");
+  if(hd && ar){ ar.style.top = (hd.offsetHeight+1) + "px"; }
 }
 function addCal(name){
   S.cals.push({id:newId(),name:name.trim(),color:S.cals.length%CAL_COLORS.length,visible:true});

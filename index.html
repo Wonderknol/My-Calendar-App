@@ -41,7 +41,8 @@ button, select, input, textarea { font:inherit; color:inherit; }
 @media(min-width:1000px){ .layout { grid-template-columns:9fr 3fr; } }
 .card { background:var(--panel); border:1px solid var(--border); border-radius:14px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
 .weekcard { border-radius:14px; overflow:visible; }
-.alldayrow { display:grid; grid-template-columns:56px repeat(7,1fr); border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:57px; z-index:8; }
+.alldayrow { display:grid; grid-template-columns:56px repeat(7,1fr); border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:57px; z-index:8; margin-top:-1px; }
+.alldayrow:empty { display:none; }
 .alldayrow .adc { min-height:22px; padding:2px 4px; display:flex; flex-direction:column; gap:2px; min-width:0; }
 .alldayrow .adc .allday { width:100%; min-width:0; }
 .alldayrow .adc-label { font-size:9px; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); text-align:center; line-height:20px; }
@@ -64,19 +65,19 @@ button, select, input, textarea { font:inherit; color:inherit; }
   .layout > div:first-child > .weekcard { border-radius:0; border:0; border-top:1px solid var(--border); box-shadow:none; }
   .layout > div:first-child > .card { border-radius:0; border:0; border-top:1px solid var(--border); box-shadow:none; }
   .layout > div:first-child { padding:0; }
-  .evt { font-size:10px; }
-  .hour-label { font-size:11px; }
+  .evt { font-size:11.5px; }
+  .hour-label { font-size:12px; }
   .dh .dn { font-size:15px; }
   .overlay { align-items:flex-end; padding:0; }
   .modal { max-width:100%; border-radius:16px 16px 0 0; margin:0; }
   .modal .modal-head { display:flex; align-items:flex-start; justify-content:space-between; }
 }
-.hour-label { height:28px; text-align:right; padding-right:4px; font-size:10px; color:var(--faint); border-top:1px solid var(--border-soft); }
+.hour-label { height:28px; text-align:right; padding-right:4px; font-size:12px; color:var(--sub); border-top:1px solid var(--border-soft); }
 .slot { height:28px; border-top:1px solid var(--border-soft); cursor:pointer; }
 .slot:hover { background:var(--slot-hover); }
 .slot.odd { border-top-width:0; }
 .daycol { position:relative; border-left:1px solid var(--border-soft); }
-.evt { position:absolute; left:4px; right:4px; border-radius:8px; border-left:4px solid; padding:4px 6px; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,.08); cursor:pointer; font-size:11px; line-height:1.2; }
+.evt { position:absolute; left:4px; right:4px; border-radius:8px; border-left:4px solid; padding:4px 6px; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,.08); cursor:pointer; font-size:12.5px; line-height:1.3; }
 .evt .t { font-weight:600; display:flex; align-items:center; gap:4px; }
 .evt .t span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .evt .m { font-size:10px; opacity:.75; display:flex; justify-content:space-between; }
@@ -255,6 +256,7 @@ function expandOccurrences(events, rangeStart, rangeEnd){
 }
 
 /* ---------- state ---------- */
+var SYNC_INFO=null;
 var S = {
   view: "week", weekOffset: 0, monthCursor: startOfMonth(new Date()),
   theme: load("ma-theme","light"),
@@ -330,6 +332,7 @@ function syncDisconnect(){ SYNC = null; store("ma-sync", null); SYNC_STATUS = "o
 
 function saveAll(){ store("ma-theme",S.theme); store("ma-cals",S.cals); store("ma-events",S.events); store("ma-subs",S.subs); store("ma-tasks",S.tasks); syncQueuePush(); }
 function setInfo(msg){ INFO=msg; render(); if(msg) setTimeout(function(){ if(INFO===msg){ INFO=null; render(); } }, 3500); }
+function syncSetInfo(msg){ SYNC_INFO=msg; render(); if(msg) setTimeout(function(){ if(SYNC_INFO===msg){ SYNC_INFO=null; render(); } }, 3500); }
 function calById(id){ return S.cals.filter(function(c){return c.id===id;})[0] || S.cals[0]; }
 function visibleIds(){ return S.cals.filter(function(c){return c.visible;}).map(function(c){return c.id;}); }
 function colOf(cal){
@@ -376,8 +379,8 @@ function syncSub(sub){
 }
 function syncAll(){
   if(!S.subs.length) return;
-  setInfo("Agenda's verversen…");
-  Promise.all(S.subs.map(syncSub)).then(function(updated){ S.subs=updated; saveAll(); setInfo("Agenda's ververst"); });
+  syncSetInfo("Agenda's verversen…");
+  Promise.all(S.subs.map(syncSub)).then(function(updated){ S.subs=updated; saveAll(); syncSetInfo("Agenda's ververst"); });
 }
 function downloadICS(cal){
   var evs=S.events.filter(function(e){return e.calId===cal.id;});
@@ -409,8 +412,7 @@ function render(){
   h+='<div class="sub small">'+(S.view==="week"
       ? weekDays[0].getDate()+" "+weekDays[0].toLocaleDateString("nl-NL",{month:"short"})+" – "+weekDays[6].getDate()+" "+weekDays[6].toLocaleDateString("nl-NL",{month:"short"})+' <span class="faint">· '+Math.round(weekTotal/60)+'u</span>'
       : esc(S.monthCursor.toLocaleDateString("nl-NL",{month:"long",year:"numeric"})))+'</div>';
-  h+='<div class="row" style="margin-left:auto">'+(INFO?'<span class="toast">'+esc(INFO)+'</span>':"")
-   +'<button class="hamburger" data-drawer="1">☰</button></div></div></header>';
+  h+='<div class="row" style="margin-left:auto"><button class="hamburger" data-drawer="1">☰</button></div></div></header>';
 
   h+='<div class="layout"><div>';
   if(S.view==="week"){
@@ -628,7 +630,7 @@ function render(){
   document.getElementById("app").innerHTML=h;
 
   var titleEl=document.getElementById("evttitle");
-  if(titleEl){ titleEl.oninput=function(){ D_INPUT=this.value; }; titleEl.onkeydown=function(ev){ if(ev.key==="Enter") saveEvent(); }; }
+  if(titleEl){ titleEl.oninput=function(){ D_INPUT=this.value; }; titleEl.onkeydown=function(ev){ if(ev.key==="Enter") saveEvent(); }; setTimeout(function(){ try{ titleEl.focus(); }catch(e){} },50); }
   var ti=document.getElementById("taskinput");
   if(ti){ ti.onkeydown=function(ev){ if(ev.key==="Enter"){ addTask(this.value); render(); } }; document.getElementById("taskadd").onclick=function(){ addTask(ti.value); render(); }; }
   var su=document.getElementById("suburl");
@@ -642,6 +644,8 @@ function render(){
   /* allday-rij net onder de sticky dagheaders laten plakken */
   var hd=document.querySelector("header"), ar=document.querySelector(".alldayrow");
   if(hd && ar){ ar.style.top = (hd.offsetHeight+1) + "px"; }
+  var hd2=document.querySelector("header");
+  if(hd2){ hd2.style.borderBottom="1px solid var(--border)"; }
 }
 function addCal(name){
   S.cals.push({id:newId(),name:name.trim(),color:S.cals.length%CAL_COLORS.length,visible:true});

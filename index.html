@@ -51,6 +51,17 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .dh .dn .tdy { font-size:11px; font-weight:400; margin-left:4px; color:var(--accent); }
 .is-today { background:var(--today-bg); }
 .grid-body { display:grid; grid-template-columns:56px repeat(7,1fr); }
+@media(max-width:999px){
+  .grid-head, .grid-body { grid-template-columns:40px repeat(7,1fr); }
+  .grid-body { overflow:hidden; }
+  body { overflow:hidden; height:100dvh; display:flex; flex-direction:column; }
+  .layout { flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:8px; }
+  header { flex:none; }
+  .grid-head { position:sticky; top:0; z-index:10; background:var(--panel); }
+  .alldayrow { top:0; }
+  .evt { font-size:10px; }
+  .hour-label { font-size:9px; }
+}
 .hour-label { height:28px; text-align:right; padding-right:4px; font-size:10px; color:var(--faint); border-top:1px solid var(--border-soft); }
 .slot { height:28px; border-top:1px solid var(--border-soft); cursor:pointer; }
 .slot:hover { background:var(--slot-hover); }
@@ -69,6 +80,13 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .mgrid { display:grid; grid-template-columns:repeat(7,1fr); }
 .mgrid .mh { padding:8px 0; text-align:center; font-size:11px; text-transform:uppercase; color:var(--sub); border-bottom:1px solid var(--border); }
 .mcell { min-height:92px; border-bottom:1px solid var(--border-soft); border-right:1px solid var(--border-soft); padding:4px; }
+/* mobiel */
+.hamburger { display:none; background:none; border:0; font-size:22px; cursor:pointer; padding:4px 8px; }
+@media(max-width:999px){ .hamburger { display:block; } .layout { grid-template-columns:1fr; } }
+.drawer { position:fixed; top:0; right:0; bottom:0; width:300px; max-width:85vw; background:var(--panel); border-left:1px solid var(--border); z-index:40; box-shadow:-8px 0 30px rgba(0,0,0,.2); padding:16px; overflow-y:auto; }
+.drawer-back { position:fixed; inset:0; background:rgba(15,23,42,.4); z-index:39; }
+.drawer h3 { font-size:15px; margin:0 0 10px; }
+.drawer .close { position:absolute; top:10px; right:12px; background:none; border:0; font-size:20px; cursor:pointer; }
 .mcell.off { opacity:.45; }
 .mcell .d { font-size:12px; font-weight:600; margin-bottom:4px; color:var(--sub); }
 .mcell.is-today .d { color:var(--accent); }
@@ -105,7 +123,7 @@ button, select, input, textarea { font:inherit; color:inherit; }
 /* ---------- helpers ---------- */
 var DAYS = ["Ma","Di","Wo","Do","Vr","Za","Zo"];
 var DAYS_FULL = ["maandag","dinsdag","woensdag","donderdag","vrijdag","zaterdag","zondag"];
-var START_HOUR = 6, END_HOUR = 23, SLOT_MIN = 30, PX_PER_HOUR = 56;
+var START_HOUR = 0, END_HOUR = 24, SLOT_MIN = 30, PX_PER_HOUR = 56;
 var CAL_COLORS = [
   { hex:"#6366f1", light:"#e0e7ff", dark:"#312e81" },
   { hex:"#10b981", light:"#d1fae5", dark:"#064e3b" },
@@ -241,7 +259,7 @@ var S = {
   now: new Date()
 };
 var DIALOG=null, DETAIL=null, SHAREFOR=null, SUBDIALOG=false, CALDIALOG=false,
-    CONFIRM_DEL=false, CONFIRM_CAL=null, INFO=null,
+    CONFIRM_DEL=false, CONFIRM_CAL=null, INFO=null, DRAWER=false,
     D_INPUT="", D_DUR=60, D_CAL="", D_RECUR=0, D_ALLDAY=false, SUB_URL="", SUB_CAL="", NEWCAL="",
     DRAG_ID=null, DRAG_TASK=false;
 var today = new Date();
@@ -375,7 +393,7 @@ function render(){
   var rows=(END_HOUR-START_HOUR)*60/SLOT_MIN;
   var weekTotal=weekDays.reduce(function(s,d){ return s+occsFor(dateKey(d)).filter(function(e){return !e.allDay;}).reduce(function(a,e){return a+e.dur;},0); },0);
 
-  var h='<header><div class="hwrap"><div class="logo">M</div><h1>Mijn Agenda</h1>';
+  var h='<header><div class="hwrap"><button class="hamburger" data-drawer="1">☰</button><div class="logo">M</div><h1>Mijn Agenda</h1>';
   h+='<div class="row"><button class="btn'+(S.view==="week"?" on":"")+'" data-view="week">Week</button>'
    +'<button class="btn'+(S.view==="month"?" on":"")+'" data-view="month">Maand</button></div>';
   h+='<div class="row"><button class="btn" data-nav="-1">←</button><button class="btn" data-nav="0">Vandaag</button>'
@@ -451,7 +469,7 @@ function render(){
   h+='<p class="info-l">Klik op een leeg slot om in te plannen · klik op een afspraak voor details · sleep om te verplaatsen</p></div>';
 
   /* sidebar */
-  h+='<aside><div class="card pad"><div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="section-title">Agenda\u2019s</span>'
+  h+=(DRAWER?'<div class="drawer-back" data-drawer-close="1"></div><div class="drawer"><button class="close" data-drawer-close="1">✕</button><h3>Menu</h3>':'<aside>')+'<div class="card pad"><div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="section-title">Agenda\u2019s</span>'
    +'<button class="btn" style="font-size:12px" data-newcal="1">+ nieuw</button></div>';
   S.cals.forEach(function(c){
     var col=CAL_COLORS[c.color%CAL_COLORS.length];
@@ -505,7 +523,7 @@ function render(){
     h+='<p class="faint small" style="margin-bottom:8px">Verbind met je eigen server om je agenda op al je apparaten te delen – en om live webcal-abonnementen (Rostar/I-call, UGent) te laten werken.</p>'
      +'<button class="btn wide small on" data-syncset="1">🔗 Synchronisatie instellen</button>';
   }
-  h+='</div></aside></div>';
+  h+='</div>'+(DRAWER?'</div>':'</aside>')+'</div>';
 
   /* detail modal */
   if(DETAIL){
@@ -609,6 +627,9 @@ function render(){
     setTimeout(function(){ syu.focus(); },50); }
   var nc=document.getElementById("newcal");
   if(nc){ nc.onkeydown=function(ev){ if(ev.key==="Enter" && this.value.trim()) addCal(this.value); }; setTimeout(function(){ nc.focus(); },50); }
+  /* allday-rij net onder de sticky dagheaders laten plakken */
+  var gh=document.querySelector(".grid-head"), ar=document.querySelector(".alldayrow");
+  if(gh && ar){ ar.style.top = gh.offsetHeight + "px"; }
 }
 function addCal(name){
   S.cals.push({id:newId(),name:name.trim(),color:S.cals.length%CAL_COLORS.length,visible:true});
@@ -657,6 +678,8 @@ document.addEventListener("click", function(ev){
   if(el=t.closest("[data-opensub]")) { SUB_CAL=S.cals[0].id; SUB_URL=""; SUBDIALOG=true; render(); return; }
   if(el=t.closest("[data-newcal]")) { CALDIALOG=true; render(); return; }
   if(t.id==="evtsave") { saveEvent(); return; }
+  if(el=t.closest("[data-drawer]")) { DRAWER=true; render(); return; }
+  if(el=t.closest("[data-drawer-close]")) { DRAWER=false; render(); return; }
   if(t.id==="synsave") { syncConnect(); return; }
   if(el=t.closest("[data-syncset]")) { SYN_URL = SYNC?SYNC.url:""; SYN_KEY = SYNC?SYNC.key:""; SYNCDIALOG=true; render(); return; }
   if(el=t.closest("[data-syncoff]")) { syncDisconnect(); return; }
@@ -726,6 +749,24 @@ document.addEventListener("drop", function(ev){
 
 /* tick + escape */
 setInterval(function(){ S.now=new Date(); if(!DIALOG && !DETAIL) render(); }, 60000);
+/* swipe links/rechts = week wisselen (weekweergave) */
+var SWIPE_X=null, SWIPE_Y=null, SWIPE_T=null;
+document.addEventListener("touchstart", function(ev){
+  if(ev.touches.length!==1 || S.view!=="week" || DIALOG || DETAIL || DRAWER || SUBDIALOG || CALDIALOG) { SWIPE_X=null; return; }
+  var t=ev.touches[0];
+  if(t.target.closest && (t.target.closest(".evt") || t.target.closest(".allday") || t.target.closest("[data-task]") || t.target.closest(".drawer") || t.target.closest("header"))) { SWIPE_X=null; return; }
+  SWIPE_X=t.clientX; SWIPE_Y=t.clientY; SWIPE_T=Date.now();
+}, {passive:true});
+document.addEventListener("touchend", function(ev){
+  if(SWIPE_X===null) return;
+  var t=ev.changedTouches[0];
+  var dx=t.clientX-SWIPE_X, dy=t.clientY-SWIPE_Y, dt=Date.now()-SWIPE_T;
+  SWIPE_X=null;
+  if(dt>700) return;
+  if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5){
+    if(dx<0) nav(1); else nav(-1);
+  }
+}, {passive:true});
 document.addEventListener("keydown", function(ev){ if(ev.key==="Escape"){ DIALOG=null; DETAIL=null; SHAREFOR=null; SUBDIALOG=false; CALDIALOG=false; SYNCDIALOG=false; CONFIRM_DEL=false; CONFIRM_CAL=null; render(); } });
 if(SYNC){
   SYNC_STATUS = "pulling";

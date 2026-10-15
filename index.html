@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mijn Agenda</title>
+<style>
+:root {
+  --bg:#f8fafc; --panel:#ffffff; --border:#e5e7eb; --border-soft:#f1f5f9;
+  --text:#0f172a; --sub:#64748b; --faint:#94a3b8; --accent:#4f46e5;
+  --btn-bg:#fff; --btn-border:#cbd5e1; --btn-hover:#f1f5f9;
+  --today-bg:#eef2ff; --slot-hover:#e0e7ff; --chip:#f1f5f9; --overlay:rgba(15,23,42,.5);
+}
+.dark {
+  --bg:#020617; --panel:#0f172a; --border:#1e293b; --border-soft:#16213a;
+  --text:#f1f5f9; --sub:#94a3b8; --faint:#64748b; --accent:#6366f1;
+  --btn-bg:#1e293b; --btn-border:#334155; --btn-hover:#334155;
+  --today-bg:rgba(99,102,241,.12); --slot-hover:rgba(99,102,241,.2); --chip:#1e293b;
+}
+* { box-sizing:border-box; margin:0; }
+body { font-family:-apple-system,"SF Pro Text",Inter,system-ui,sans-serif; background:var(--bg); color:var(--text); }
+header { background:var(--panel); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20; }
+.hwrap { max-width:1200px; margin:0 auto; padding:12px 16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.logo { width:32px; height:32px; border-radius:8px; background:var(--accent); color:#fff; display:grid; place-items:center; font-weight:700; }
+h1 { font-size:18px; font-weight:600; }
+button, select, input, textarea { font:inherit; color:inherit; }
+.btn { background:var(--btn-bg); border:1px solid var(--btn-border); padding:6px 12px; border-radius:8px; cursor:pointer; font-size:13px; }
+.btn:hover { background:var(--btn-hover); }
+.btn.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+.btn.danger { background:#e11d48; border-color:#e11d48; color:#fff; }
+.btn.danger:hover { background:#be123c; }
+.btn.wide { width:100%; padding:8px; }
+.txt { background:var(--btn-bg); border:1px solid var(--btn-border); border-radius:8px; padding:7px 10px; font-size:14px; width:100%; }
+.txt:focus, .btn:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+.layout { max-width:1200px; margin:0 auto; padding:16px; display:grid; grid-template-columns:1fr; gap:16px; }
+@media(min-width:1000px){ .layout { grid-template-columns:9fr 3fr; } }
+.card { background:var(--panel); border:1px solid var(--border); border-radius:14px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+.weekcard { border-radius:14px; overflow:visible; }
+.alldayrow { display:grid; grid-template-columns:56px repeat(7,1fr); border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:57px; z-index:8; }
+.alldayrow .adc { min-height:22px; padding:2px 4px; display:flex; flex-direction:column; gap:2px; min-width:0; }
+.alldayrow .adc .allday { width:100%; min-width:0; }
+.alldayrow .adc-label { font-size:9px; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); text-align:center; line-height:20px; }
+.allday { padding:1px 6px; border-radius:6px; font-size:10px; font-weight:600; cursor:pointer; border-left:3px solid; line-height:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pad { padding:16px; }
+.sub { color:var(--sub); } .faint { color:var(--faint); }
+.small { font-size:12px; }
+.grid-head { display:grid; grid-template-columns:56px repeat(7,1fr); border-bottom:1px solid var(--border); }
+.grid-head .dh { padding:8px 0; text-align:center; }
+.dh .dw { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--sub); }
+.dh .dn { font-size:14px; font-weight:600; }
+.dh .dn .tdy { font-size:11px; font-weight:400; margin-left:4px; color:var(--accent); }
+.is-today { background:var(--today-bg); }
+.grid-body { display:grid; grid-template-columns:56px repeat(7,1fr); }
+.hour-label { height:28px; text-align:right; padding-right:4px; font-size:10px; color:var(--faint); border-top:1px solid var(--border-soft); }
+.slot { height:28px; border-top:1px solid var(--border-soft); cursor:pointer; }
+.slot:hover { background:var(--slot-hover); }
+.slot.odd { border-top-width:0; }
+.daycol { position:relative; border-left:1px solid var(--border-soft); }
+.evt { position:absolute; left:4px; right:4px; border-radius:8px; border-left:4px solid; padding:4px 6px; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,.08); cursor:pointer; font-size:11px; line-height:1.2; }
+.evt .t { font-weight:600; display:flex; align-items:center; gap:4px; }
+.evt .t span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.evt .m { font-size:10px; opacity:.75; display:flex; justify-content:space-between; }
+.evt.done { opacity:.55; } .strike { text-decoration:line-through; }
+.evt .chk { width:14px; height:14px; flex:none; border-radius:4px; border:1px solid rgba(0,0,0,.35); background:transparent; cursor:pointer; padding:0; }
+.dark .evt .chk { border-color:rgba(255,255,255,.5); }
+.evt .chk.checked { background:#475569; }
+.nowline { position:absolute; left:0; right:0; height:2px; background:#f43f5e; z-index:5; pointer-events:none; }
+.nowline::before { content:""; width:8px; height:8px; border-radius:50%; background:#f43f5e; position:absolute; left:-4px; top:-3px; }
+.mgrid { display:grid; grid-template-columns:repeat(7,1fr); }
+.mgrid .mh { padding:8px 0; text-align:center; font-size:11px; text-transform:uppercase; color:var(--sub); border-bottom:1px solid var(--border); }
+.mcell { min-height:92px; border-bottom:1px solid var(--border-soft); border-right:1px solid var(--border-soft); padding:4px; }
+.mcell.off { opacity:.45; }
+.mcell .d { font-size:12px; font-weight:600; margin-bottom:4px; color:var(--sub); }
+.mcell.is-today .d { color:var(--accent); }
+.mchip { font-size:10px; padding:1px 4px; border-radius:4px; margin-bottom:2px; cursor:pointer; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.calli { display:flex; align-items:center; gap:8px; padding:4px 0; font-size:14px; }
+.calli .dot { width:10px; height:10px; border-radius:50%; flex:none; }
+.calli label { display:flex; align-items:center; gap:8px; flex:1; cursor:pointer; }
+.calli input { accent-color:var(--accent); }
+.calli .act { visibility:hidden; font-size:12px; cursor:pointer; background:none; border:0; color:var(--faint); }
+.calli:hover .act { visibility:visible; }
+.calli .act:hover { color:var(--accent); }
+.calli .act.del:hover { color:#f43f5e; }
+.taskitem { display:flex; justify-content:space-between; align-items:center; background:var(--chip); border:1px solid var(--border); border-radius:8px; padding:8px; font-size:14px; margin-bottom:8px; cursor:grab; }
+.taskitem .x { border:0; background:none; color:var(--faint); cursor:pointer; font-size:12px; }
+.taskitem .x:hover { color:#f43f5e; }
+.overlay { position:fixed; inset:0; background:var(--overlay); display:grid; place-items:center; z-index:50; padding:16px; }
+.modal { background:var(--panel); border-radius:14px; box-shadow:0 20px 50px rgba(0,0,0,.3); padding:20px; width:100%; max-width:420px; display:flex; flex-direction:column; gap:12px; }
+.modal h3 { font-size:16px; }
+.row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.row .lbl { font-size:12px; color:var(--sub); margin-right:2px; }
+.chips { display:flex; gap:6px; flex-wrap:wrap; }
+.toast { background:var(--accent); color:#fff; font-size:12px; padding:4px 10px; border-radius:8px; }
+.info-l { font-size:11px; color:var(--faint); margin-top:8px; }
+.detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:14px; }
+.detail-grid .k { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); }
+.desc { font-size:14px; white-space:pre-wrap; background:var(--chip); border:1px solid var(--border); border-radius:8px; padding:10px; }
+.section-title { font-size:14px; font-weight:600; margin-bottom:4px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+"use strict";
+/* ---------- helpers ---------- */
+var DAYS = ["Ma","Di","Wo","Do","Vr","Za","Zo"];
+var DAYS_FULL = ["maandag","dinsdag","woensdag","donderdag","vrijdag","zaterdag","zondag"];
+var START_HOUR = 6, END_HOUR = 23, SLOT_MIN = 30, PX_PER_HOUR = 56;
+var CAL_COLORS = [
+  { hex:"#6366f1", light:"#e0e7ff", dark:"#312e81" },
+  { hex:"#10b981", light:"#d1fae5", dark:"#064e3b" },
+  { hex:"#f43f5e", light:"#ffe4e6", dark:"#881337" },
+  { hex:"#f59e0b", light:"#fef3c7", dark:"#78350f" },
+  { hex:"#06b6d4", light:"#cffafe", dark:"#164e63" },
+  { hex:"#8b5cf6", light:"#ede9fe", dark:"#4c1d95" }
+];
+function pad(n){ return String(n).padStart(2,"0"); }
+function dateKey(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+function fromKey(k){ return new Date(k+"T00:00:00"); }
+function addDays(d,n){ var x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function startOfWeek(d){ var x=new Date(d); var day=(x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x; }
+function startOfMonth(d){ return new Date(d.getFullYear(),d.getMonth(),1); }
+function sameDay(a,b){ return dateKey(a)===dateKey(b); }
+function fmtTime(min){ var h=Math.floor(min/60), m=min%60; return m===0? h+"u" : h+":"+pad(m); }
+function fmtDur(min){ if(min<60) return min+"m"; var h=Math.floor(min/60), m=min%60; return m===0? h+"u" : h+"u "+m+"m"; }
+function nlDate(d){ return d.toLocaleDateString("nl-NL",{day:"numeric",month:"long"}); }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function escIcs(s){ return String(s).replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\n/g,"\\n"); }
+var idc=1; function newId(){ return "e"+(idc++)+String(Date.now()%100000); }
+function store(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function load(k,def){ try{ var r=localStorage.getItem(k); if(r) return JSON.parse(r); }catch(e){} return def; }
+
+/* ---------- ICS ---------- */
+function parseICS(text){
+  var evs=[], cur=null;
+  text.replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n").forEach(function(raw){
+    var line = (raw[0]===" " && cur) ? cur+raw.slice(1) : raw;
+    if(line.indexOf("BEGIN:VEVENT")===0) cur={raw:[]};
+    else if(cur){ if(line.indexOf("END:VEVENT")===0){ evs.push(cur.raw); cur=null; } else cur.raw.push(line); }
+  });
+  return evs.map(function(raw){
+    var ev={summary:"Gebeurtenis",start:null,end:null,rrule:null,desc:"",loc:""};
+    raw.forEach(function(l){
+      var idx=l.indexOf(":"); if(idx<0) return;
+      var name=l.slice(0,idx).split(";")[0].toUpperCase(), val=l.slice(idx+1);
+      if(name==="SUMMARY") ev.summary=val;
+      else if(name==="DESCRIPTION") ev.desc=val;
+      else if(name==="LOCATION") ev.loc=val;
+      else if(name==="DTSTART") ev.start=val;
+      else if(name==="DTEND") ev.end=val;
+      else if(name==="RRULE") ev.rrule=val;
+    });
+    return ev.start?ev:null;
+  }).filter(Boolean);
+}
+function icsDateToParts(val){
+  var v=val.trim();
+  if(/^\d{8}$/.test(v)) return { date:fromKey(v.slice(0,4)+"-"+v.slice(4,6)+"-"+v.slice(6,8)), min:0, allday:true };
+  var m=/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z?)$/.exec(v);
+  if(m){
+    if(m[7]==="Z"){
+      var dt=new Date(Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+m[6]));
+      return { date:new Date(dt.getFullYear(),dt.getMonth(),dt.getDate()), min:dt.getHours()*60+dt.getMinutes() };
+    }
+    return { date:new Date(+m[1],+m[2]-1,+m[3]), min:+m[4]*60 + +m[5] };
+  }
+  var d2=new Date(v); return { date:new Date(d2.getFullYear(),d2.getMonth(),d2.getDate()), min:d2.getHours()*60+d2.getMinutes() };
+}
+function icsToEvents(parsed, calId){
+  return parsed.map(function(p){
+    var s=icsDateToParts(p.start), dur=60, allDay=!!s.allday;
+    if(p.end){ var e=icsDateToParts(p.end); dur=Math.max(15, Math.round((e.date.getTime()-s.date.getTime())/60000 + e.min - s.min)); }
+    var recur=null;
+    if(p.rrule){ var fm=/FREQ=(\w+)/i.exec(p.rrule), im=/INTERVAL=(\d+)/i.exec(p.rrule);
+      if(fm && fm[1].toUpperCase()==="WEEKLY") recur={weeks:im?parseInt(im[1]):1}; }
+    return { id:newId(), calId:calId, title:p.summary, date:dateKey(s.date), start:allDay?0:s.min, dur:allDay?1440:dur,
+             doneDates:[], recur:recur, external:true, desc:p.desc, loc:p.loc, allDay:allDay };
+  }).filter(function(e){ return e.date; });
+}
+function eventsToICS(events, calName){
+  function dtx(d,min){ return dateKey(d).replace(/-/g,"")+"T"+pad(Math.floor(min/60))+pad(min%60)+"00"; }
+  var now=new Date().toISOString().replace(/[-:]/g,"").split(".")[0]+"Z";
+  var s="BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//MijnAgenda//NL\r\nCALSCALE:GREGORIAN\r\nX-WR-CALNAME:"+escIcs(calName)+"\r\n";
+  events.forEach(function(e){
+    var d=fromKey(e.date), start=new Date(d.getTime()+e.start*60000), end=new Date(start.getTime()+e.dur*60000);
+    s+="BEGIN:VEVENT\r\nUID:"+e.id+"@mijnagenda\r\nDTSTAMP:"+now+"\r\n";
+    if(e.allDay){
+      s+="DTSTART;VALUE=DATE:"+dateKey(d).replace(/-/g,"")+"\r\nDTEND;VALUE=DATE:"+dateKey(addDays(d,1)).replace(/-/g,"")+"\r\n";
+    } else {
+      s+="DTSTART:"+dtx(d,e.start)+"\r\nDTEND:"+dtx(end,end.getHours()*60+end.getMinutes())+"\r\n";
+    }
+    s+="SUMMARY:"+escIcs(e.title)+"\r\n";
+    if(e.recur) s+="RRULE:FREQ=WEEKLY;INTERVAL="+e.recur.weeks+"\r\n";
+    if(e.desc) s+="DESCRIPTION:"+escIcs(e.desc)+"\r\n";
+    s+="END:VEVENT\r\n";
+  });
+  return s+"END:VCALENDAR\r\n";
+}
+function fetchICS(url){
+  if(SYNC){
+    return fetch(syncApi("/api/ics?") + "&url=" + encodeURIComponent(url))
+      .then(function(r){ if(!r.ok) throw new Error("status"); return r.text(); });
+  }
+  var attempts=[url, "https://api.allorigins.win/raw?url="+encodeURIComponent(url), "https://corsproxy.io/?"+encodeURIComponent(url)];
+  function tryAt(i){
+    if(i>=attempts.length) return Promise.reject(new Error("Ophalen mislukt"));
+    return fetch(attempts[i]).then(function(r){ if(!r.ok) throw new Error("status"); return r.text(); })
+      .catch(function(){ return tryAt(i+1); });
+  }
+  return tryAt(0);
+}
+
+/* ---------- recurring expansion ---------- */
+function expandOccurrences(events, rangeStart, rangeEnd){
+  var out=[], totalDays=Math.ceil((rangeEnd-rangeStart)/86400000)+7;
+  events.forEach(function(e){
+    if(!e.recur){ var d=fromKey(e.date); if(d>=rangeStart && d<=rangeEnd) out.push(e); return; }
+    var base=fromKey(e.date);
+    var weekDiff=Math.floor((startOfWeek(rangeStart)-startOfWeek(base))/(7*86400000));
+    for(var n=weekDiff-1; n<=weekDiff+Math.ceil(totalDays/7)+1; n++){
+      var d2=addDays(base, n*e.recur.weeks*7);
+      if(d2>=rangeStart && d2<=rangeEnd) out.push(Object.assign({}, e, {occDate:dateKey(d2)}));
+    }
+  });
+  return out;
+}
+
+/* ---------- state ---------- */
+var S = {
+  view: "week", weekOffset: 0, monthCursor: startOfMonth(new Date()),
+  theme: load("ma-theme","light"),
+  cals: load("ma-cals",[
+    {id:"werk",name:"Mijn werkrooster",color:0,visible:true},
+    {id:"persoonlijk",name:"Persoonlijk",color:1,visible:true},
+    {id:"vriendin",name:"Werkrooster vriendin",color:2,visible:true},
+    {id:"lessen",name:"Lessenrooster UGent",color:3,visible:true}
+  ]),
+  events: load("ma-events",[]),
+  subs: load("ma-subs",[]),
+  tasks: load("ma-tasks",[]),
+  now: new Date()
+};
+var DIALOG=null, DETAIL=null, SHAREFOR=null, SUBDIALOG=false, CALDIALOG=false,
+    CONFIRM_DEL=false, CONFIRM_CAL=null, INFO=null,
+    D_INPUT="", D_DUR=60, D_CAL="", D_RECUR=0, D_ALLDAY=false, SUB_URL="", SUB_CAL="", NEWCAL="",
+    DRAG_ID=null, DRAG_TASK=false;
+var today = new Date();
+/* migratie: eerder geïmporteerde hele-dag-items (24u-blokken) herkennen */
+S.events.forEach(function(e){ if(!e.allDay && e.dur>=1440){ e.allDay=true; e.start=0; e.dur=1440; } });
+S.subs.forEach(function(s){ (s.events||[]).forEach(function(e){ if(!e.allDay && e.dur>=1440){ e.allDay=true; e.start=0; e.dur=1440; } }); });
+
+/* ---------- synchronisatie ---------- */
+var SYNC = load("ma-sync", null); // {url, key}
+var SYNC_STATUS = "off", SYNC_DIRTY = false, SYNC_TIMER = null, SYNCDIALOG = false, SYN_URL = "", SYN_KEY = "";
+function syncApi(p){ return SYNC.url.replace(/\/+$/,"") + p + "key=" + encodeURIComponent(SYNC.key); }
+function syncQueuePush(){
+  if(!SYNC) return;
+  SYNC_DIRTY = true;
+  if(SYNC_TIMER) clearTimeout(SYNC_TIMER);
+  SYNC_TIMER = setTimeout(syncPush, 1500);
+}
+function syncPush(){
+  if(!SYNC) return;
+  SYNC_DIRTY = false; SYNC_STATUS = "pushing"; render();
+  fetch(syncApi("/api/data?"), {
+    method: "PUT", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cals: S.cals, events: S.events, subs: S.subs, tasks: S.tasks, theme: S.theme })
+  }).then(function(r){ if(!r.ok) throw new Error("status"); SYNC_STATUS = "ok"; render(); })
+    .catch(function(){ SYNC_STATUS = "error"; render(); });
+}
+function syncPull(quiet){
+  if(!SYNC) return Promise.resolve(false);
+  if(SYNC_STATUS !== "ok") SYNC_STATUS = "pulling";
+  return fetch(syncApi("/api/data?"))
+    .then(function(r){ if(r.status === 404) return null; if(!r.ok) throw new Error("status"); return r.json(); })
+    .then(function(data){
+      if(!data || !data.cals){ if(!quiet) setInfo("Nog geen data op de server"); return false; }
+      S.cals = data.cals; S.events = data.events || []; S.subs = data.subs || []; S.tasks = data.tasks || [];
+      if(data.theme) S.theme = data.theme;
+      store("ma-cals",S.cals); store("ma-events",S.events); store("ma-subs",S.subs); store("ma-tasks",S.tasks); store("ma-theme",S.theme);
+      SYNC_STATUS = "ok"; render(); return true;
+    })
+    .catch(function(){ SYNC_STATUS = "error"; if(!quiet) setInfo("Synchronisatie mislukt"); render(); return false; });
+}
+function syncConnect(){
+  var u = SYN_URL.trim().replace(/\/+$/,""), k = SYN_KEY.trim();
+  if(!u || !k){ setInfo("Vul server-URL en sync-code in"); return; }
+  SYNC = { url: u, key: k }; store("ma-sync", SYNC); SYNCDIALOG = false;
+  setInfo("Verbinding testen…");
+  fetch(u + "/api/data?key=" + encodeURIComponent(k))
+    .then(function(r){ if(r.status === 404) return null; if(!r.ok) throw new Error("status"); return r.json(); })
+    .then(function(data){
+      if(data && data.cals){
+        return syncPull(true).then(function(){ setInfo("Verbonden – data van de server geladen"); });
+      }
+      syncPush(); setInfo("Verbonden – lokale data naar de server geüpload");
+    })
+    .catch(function(){ SYNC_STATUS = "error"; setInfo("Verbinding mislukt – URL/code juist?"); });
+}
+function syncDisconnect(){ SYNC = null; store("ma-sync", null); SYNC_STATUS = "off"; SYNCDIALOG = false; saveAll(); render(); }
+
+function saveAll(){ store("ma-theme",S.theme); store("ma-cals",S.cals); store("ma-events",S.events); store("ma-subs",S.subs); store("ma-tasks",S.tasks); syncQueuePush(); }
+function setInfo(msg){ INFO=msg; render(); if(msg) setTimeout(function(){ if(INFO===msg){ INFO=null; render(); } }, 3500); }
+function calById(id){ return S.cals.filter(function(c){return c.id===id;})[0] || S.cals[0]; }
+function visibleIds(){ return S.cals.filter(function(c){return c.visible;}).map(function(c){return c.id;}); }
+function colOf(cal){
+  var c=CAL_COLORS[cal.color%CAL_COLORS.length];
+  return { bg: S.theme==="dark"?c.dark:c.light, border:c.hex };
+}
+
+/* ---------- actions ---------- */
+function toggleTheme(){ S.theme = S.theme==="dark"?"light":"dark"; saveAll(); render(); }
+function setView(v){ S.view=v; render(); }
+function nav(d){ if(S.view==="week") S.weekOffset+=d; else S.monthCursor=new Date(S.monthCursor.getFullYear(), S.monthCursor.getMonth()+d, 1); render(); }
+function goToday(){ S.weekOffset=0; S.monthCursor=startOfMonth(new Date()); render(); }
+function openSlot(dk,start){ D_INPUT=""; D_DUR=60; D_RECUR=0; D_ALLDAY=false; D_CAL=S.cals[0].id; CONFIRM_DEL=false; DIALOG={date:dk,start:start}; render(); }
+function saveEvent(){
+  if(!D_INPUT.trim()) return;
+  S.events.push({ id:newId(), calId:D_CAL, date:DIALOG.date, start:D_ALLDAY?0:DIALOG.start, dur:D_ALLDAY?1440:D_DUR,
+    title:D_INPUT.trim(), doneDates:[], recur: D_RECUR>0?{weeks:D_RECUR}:null, allDay:D_ALLDAY });
+  DIALOG=null; saveAll(); render();
+}
+function toggleDone(e,dk){
+  if(e.external) return;
+  var set=new Set(e.doneDates||[]);
+  if(set.has(dk)) set.delete(dk); else set.add(dk);
+  for(var i=0;i<S.events.length;i++) if(S.events[i].id===e.id) S.events[i].doneDates=Array.from(set);
+  saveAll();
+}
+function deleteEvent(id){ S.events=S.events.filter(function(e){return e.id!==id;}); saveAll(); }
+function addTask(t){ if(!t.trim()) return; S.tasks.push({id:newId(),title:t.trim()}); saveAll(); }
+function handleDrop(dk,start){
+  if(!DRAG_ID) return;
+  if(DRAG_TASK){
+    var t=S.tasks.filter(function(x){return x.id===DRAG_ID;})[0];
+    if(t){ S.tasks=S.tasks.filter(function(x){return x.id!==DRAG_ID;});
+      S.events.push({id:t.id,calId:"persoonlijk",date:dk,start:start,dur:60,title:t.title,doneDates:[],recur:null}); }
+  } else {
+    S.events.forEach(function(e){ if(e.id===DRAG_ID){ e.date=dk; if(!e.allDay) e.start=start; } });
+  }
+  DRAG_ID=null; saveAll(); render();
+}
+function syncSub(sub){
+  return fetchICS(sub.url).then(function(text){
+    sub.events=icsToEvents(parseICS(text), sub.calId); sub.lastSync=Date.now(); sub.error=null; return sub;
+  }).catch(function(){ sub.error="Ophalen mislukt (CORS/netwerk)"; return sub; });
+}
+function syncAll(){
+  if(!S.subs.length) return;
+  setInfo("Agenda's verversen…");
+  Promise.all(S.subs.map(syncSub)).then(function(updated){ S.subs=updated; saveAll(); setInfo("Agenda's ververst"); });
+}
+function downloadICS(cal){
+  var evs=S.events.filter(function(e){return e.calId===cal.id;});
+  var blob=new Blob([eventsToICS(evs,cal.name)],{type:"text/calendar"});
+  var a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=cal.name.replace(/\s+/g,"-").toLowerCase()+".ics"; a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ---------- render ---------- */
+function render(){
+  var dark=S.theme==="dark";
+  document.documentElement.className = dark?"dark":"";
+  var weekStart=addDays(startOfWeek(today), S.weekOffset*7);
+  var weekDays=DAYS.map(function(_,i){ return addDays(weekStart,i); });
+  var rangeStart, rangeEnd;
+  if(S.view==="week"){ rangeStart=weekStart; rangeEnd=addDays(weekStart,7); }
+  else { rangeStart=startOfWeek(startOfMonth(S.monthCursor)); rangeEnd=addDays(startOfWeek(new Date(S.monthCursor.getFullYear(),S.monthCursor.getMonth()+1,0)),7); }
+  var vis=new Set(visibleIds());
+  var subEvents=[]; S.subs.forEach(function(s){ s.events.forEach(function(e){ if(vis.has(e.calId)) subEvents.push(e); }); });
+  var all=S.events.filter(function(e){ return vis.has(e.calId); }).concat(subEvents);
+  var occs=expandOccurrences(all, rangeStart, rangeEnd);
+  function occsFor(dk){ return occs.filter(function(o){ return (o.occDate||o.date)===dk; }).sort(function(a,b){return a.start-b.start;}); }
+  var todayKey=dateKey(today), nowMin=S.now.getHours()*60+S.now.getMinutes();
+  var rows=(END_HOUR-START_HOUR)*60/SLOT_MIN;
+  var weekTotal=weekDays.reduce(function(s,d){ return s+occsFor(dateKey(d)).filter(function(e){return !e.allDay;}).reduce(function(a,e){return a+e.dur;},0); },0);
+
+  var h='<header><div class="hwrap"><div class="logo">M</div><h1>Mijn Agenda</h1>';
+  h+='<div class="row"><button class="btn'+(S.view==="week"?" on":"")+'" data-view="week">Week</button>'
+   +'<button class="btn'+(S.view==="month"?" on":"")+'" data-view="month">Maand</button></div>';
+  h+='<div class="row"><button class="btn" data-nav="-1">←</button><button class="btn" data-nav="0">Vandaag</button>'
+   +'<button class="btn" data-nav="1">→</button><button class="btn" title="Abonnementen verversen" data-syncall="1">↻</button></div>';
+  h+='<div class="sub small">'+(S.view==="week"
+      ? esc(nlDate(weekDays[0]))+" – "+esc(nlDate(weekDays[6]))+' <span class="faint">· '+Math.round(weekTotal/60)+'u gepland</span>'
+      : esc(S.monthCursor.toLocaleDateString("nl-NL",{month:"long",year:"numeric"})))+'</div>';
+  h+='<div class="row" style="margin-left:auto">'+(INFO?'<span class="toast">'+esc(INFO)+'</span>':"")
+   +'<button class="btn" title="Donkere modus" data-theme="1">'+(dark?"☀️":"🌙")+'</button></div></div></header>';
+
+  h+='<div class="layout"><div>';
+  if(S.view==="week"){
+    h+='<div class="card weekcard"><div class="grid-head"><div></div>';
+    weekDays.forEach(function(d,i){
+      var isT=sameDay(d,today);
+      h+='<div class="dh'+(isT?" is-today":"")+'"><div class="dw">'+DAYS[i]+'</div><div class="dn">'+d.getDate()+(isT?'<span class="tdy">vandaag</span>':"")+'</div></div>';
+    });
+    h+='</div><div class="alldayrow"><div class="adc-label">Dag</div>';
+    weekDays.forEach(function(d){
+      var dk=dateKey(d);
+      var allday=occsFor(dk).filter(function(e){return e.allDay;});
+      h+='<div class="adc" data-aday="'+dk+'"'+(allday.length?"":' style="min-height:6px"')+'>';
+      allday.forEach(function(e){
+        var col=colOf(calById(e.calId));
+        h+='<div class="allday" style="background:'+col.bg+';border-color:'+col.border+'" data-evt="'+e.id+'" data-occ="'+dk+'"'+(e.external?"":' draggable="true"')+' title="'+esc(e.title)+' (hele dag)">📌 '+esc(e.title)+'</div>';
+      });
+      h+='</div>';
+    });
+    h+='</div><div class="grid-body"><div>';
+    for(var r=0;r<rows;r++) h+='<div class="hour-label" style="border-top-width:'+(r%2===0?1:0)+'px">'+(r%2===0?fmtTime(START_HOUR*60+r*SLOT_MIN):"")+'</div>';
+    h+='</div>';
+    weekDays.forEach(function(d){
+      var isT=sameDay(d,today), dk=dateKey(d);
+      var timed=occsFor(dk).filter(function(e){return !e.allDay;});
+      h+='<div class="daycol'+(isT?" is-today":"")+'" data-day="'+dk+'">';
+      for(var r=0;r<rows;r++){
+        var st=START_HOUR*60+r*SLOT_MIN;
+        h+='<div class="slot '+(r%2===0?"even":"odd")+'" data-start="'+st+'"></div>';
+      }
+      timed.forEach(function(e){
+        var top=((e.start-START_HOUR*60)/60)*PX_PER_HOUR, hh=(e.dur/60)*PX_PER_HOUR-4;
+        var col=colOf(calById(e.calId)), done=(e.doneDates||[]).indexOf(dk)>=0;
+        h+='<div class="evt'+(done?" done":"")+'" style="top:'+top+'px;height:'+Math.max(hh,18)+'px;background:'+col.bg+';border-color:'+col.border+';color:inherit" data-evt="'+e.id+'" data-occ="'+dk+'"'+(e.external?"":' draggable="true"')+'>'
+         +'<div class="t">'+(e.external?"":'<button class="chk'+(done?" checked":"")+'" data-chk="'+e.id+'" data-occ="'+dk+'" title="Afvinken"></button>')
+         +'<span class="'+(done?"strike":"")+'">'+esc(e.title)+'</span></div>'
+         +(e.dur>=60?'<div class="m"><span>'+fmtTime(e.start)+'–'+fmtTime(e.start+e.dur)+'</span>'+(e.recur?'<span title="Herhaalt elke '+e.recur.weeks+' weken">↻'+e.recur.weeks+'w</span>':"")+'</div>':"")
+         +'</div>';
+      });
+      if(isT && nowMin>=START_HOUR*60 && nowMin<=END_HOUR*60)
+        h+='<div class="nowline" style="top:'+((nowMin-START_HOUR*60)/60)*PX_PER_HOUR+'px"></div>';
+      h+='</div>';
+    });
+    h+='</div></div>';
+  } else {
+    var first=startOfWeek(startOfMonth(S.monthCursor));
+    h+='<div class="card"><div class="mgrid">';
+    DAYS_FULL.forEach(function(dn){ h+='<div class="mh">'+dn.slice(0,2)+'</div>'; });
+    h+='</div><div class="mgrid">';
+    for(var i=0;i<42;i++){
+      var d2=addDays(first,i), inM=d2.getMonth()===S.monthCursor.getMonth(), isT=sameDay(d2,today), dk2=dateKey(d2);
+      var list=occsFor(dk2);
+      h+='<div class="mcell'+(inM?"":" off")+(isT?" is-today":"")+'" data-mday="'+dk2+'">'
+       +'<div class="d">'+d2.getDate()+(isT?' <span style="font-size:10px;font-weight:400">vandaag</span>':"")+'</div>';
+      list.slice(0,4).forEach(function(e){
+        var col=colOf(calById(e.calId));
+        h+='<div class="mchip" style="background:'+col.bg+'" data-evt="'+e.id+'" data-occ="'+dk2+'">'+(e.allDay?"📌 "+esc(e.title):fmtTime(e.start)+' '+esc(e.title))+'</div>';
+      });
+      if(list.length>4) h+='<div class="faint" style="font-size:10px;padding-left:4px">+'+(list.length-4)+' meer</div>';
+      h+='</div>';
+    }
+    h+='</div></div>';
+  }
+  h+='<p class="info-l">Klik op een leeg slot om in te plannen · klik op een afspraak voor details · sleep om te verplaatsen</p></div>';
+
+  /* sidebar */
+  h+='<aside><div class="card pad"><div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="section-title">Agenda\u2019s</span>'
+   +'<button class="btn" style="font-size:12px" data-newcal="1">+ nieuw</button></div>';
+  S.cals.forEach(function(c){
+    var col=CAL_COLORS[c.color%CAL_COLORS.length];
+    h+='<div class="calli"><label><input type="checkbox" data-vis="'+c.id+'"'+(c.visible?" checked":"")+'/><span class="dot" style="background:'+col.hex+'"></span><span'+(c.visible?"":' class="faint"')+'>'+esc(c.name)+'</span></label>';
+    h+='<button class="act" data-share="'+c.id+'">delen</button>';
+    if(CONFIRM_CAL===c.id){
+      h+='<span class="row"><button class="btn danger" style="font-size:11px;padding:2px 6px" data-delcalsy="'+c.id+'">zeker?</button>'
+       +'<button class="act" style="visibility:visible" data-delcalsn="1">✕</button></span>';
+    } else if(S.cals.length>1){
+      h+='<button class="act del" title="Agenda verwijderen" data-delcal="'+c.id+'">🗑</button>';
+    }
+    h+='</div>';
+  });
+  h+='<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;display:flex;flex-direction:column;gap:8px">'
+   +'<button class="btn wide small" data-opensub="1">🔗 iCal-abonnement toevoegen</button>'
+   +'<select class="btn wide small" id="importsel"><option value="">📥 ICS-bestand importeren in…</option>'
+   + S.cals.map(function(c){ return '<option value="'+c.id+'">'+esc(c.name)+'</option>'; }).join("")
+   +'</select><input type="file" id="importfile" accept=".ics,text/calendar" style="display:none"/>';
+  if(S.subs.length){
+    h+='<div>';
+    S.subs.forEach(function(s){
+      h+='<div class="row small sub" style="justify-content:space-between"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(s.url)+'">🔗 '+esc(calById(s.calId).name)+' ('+s.events.length+')'+(s.error?" ⚠":"")+'</span>'
+       +'<span class="row"><button class="btn" style="font-size:11px;padding:2px 6px" data-sync="'+s.id+'">↻</button><button class="btn" style="font-size:11px;padding:2px 6px" data-unsub="'+s.id+'">✕</button></span></div>';
+    });
+    h+='</div>';
+  }
+  h+='</div></div>';
+
+  h+='<div class="card pad" style="margin-top:16px"><div class="section-title">Inbox</div>'
+   +'<p class="faint small" style="margin-bottom:8px">Ongeplande taken – sleep naar een tijdslot</p>'
+   +'<div class="row" style="margin-bottom:12px"><input class="txt" id="taskinput" placeholder="Nieuwe taak…"/><button class="btn on" id="taskadd">+</button></div>';
+  if(!S.tasks.length) h+='<div class="faint small" style="text-align:center;padding:12px 0">Alles is ingepland 🎉</div>';
+  S.tasks.forEach(function(t){
+    h+='<div class="taskitem" draggable="true" data-task="'+t.id+'"><span>'+esc(t.title)+'</span><button class="x" data-deltask="'+t.id+'">✕</button></div>';
+  });
+  h+='</div>';
+
+  /* sync card */
+  h+='<div class="card pad" style="margin-top:16px"><div class="row" style="justify-content:space-between;margin-bottom:6px"><span class="section-title">Synchronisatie</span>'
+   +(SYNC?'<button class="btn" style="font-size:12px" data-syncset="1">⚙</button>':"")+'</div>';
+  if(SYNC){
+    var st = SYNC_STATUS==="ok" ? '<span style="color:#10b981">🟢 Gesynchroniseerd</span>'
+      : SYNC_STATUS==="pushing" ? '<span class="faint">⏳ Opslaan naar server…</span>'
+      : SYNC_STATUS==="pulling" ? '<span class="faint">⏳ Ophalen…</span>'
+      : SYNC_STATUS==="error" ? '<span style="color:#f43f5e">🔴 Verbinding mislukt</span>'
+      : '<span class="faint">⏳ Verbinden…</span>';
+    h+='<div class="small">'+st+'</div>'
+     +'<p class="faint small" style="margin-top:4px" title="'+esc(SYNC.url)+'">'+esc(SYNC.url.replace(/^https?:\/\//,"").slice(0,30))+' · code: '+esc(SYNC.key.slice(0,2))+'•••</p>'
+     +'<div class="row" style="margin-top:6px"><button class="btn small" data-syncnow="1">↻ Nu verversen</button></div>';
+  } else {
+    h+='<p class="faint small" style="margin-bottom:8px">Verbind met je eigen server om je agenda op al je apparaten te delen – en om live webcal-abonnementen (Rostar/I-call, UGent) te laten werken.</p>'
+     +'<button class="btn wide small on" data-syncset="1">🔗 Synchronisatie instellen</button>';
+  }
+  h+='</div></aside></div>';
+
+  /* detail modal */
+  if(DETAIL){
+    var e=DETAIL.e, dk=DETAIL.dk, c=calById(e.calId), d=fromKey(dk), done=(e.doneDates||[]).indexOf(dk)>=0;
+    var col2=colOf(c);
+    h+='<div class="overlay" data-close="detail"><div class="modal">'
+     +'<div class="row" style="align-items:flex-start"><span class="dot" style="background:'+col2.border+';margin-top:6px"></span>'
+     +'<div style="flex:1"><h3 style="font-size:18px">'+esc(e.title)+'</h3><div class="sub small">'+esc(c.name)+'</div></div>'
+     +'<button class="btn" data-close="detail">✕</button></div>'
+     +'<div class="detail-grid">'
+     +'<div><div class="k">Datum</div><b>'+esc(d.toLocaleDateString("nl-NL",{weekday:"long",day:"numeric",month:"long",year:"numeric"}))+'</b></div>'
+     +'<div><div class="k">Tijdstip</div><b>'+(e.allDay?"Hele dag":fmtTime(e.start)+' – '+fmtTime(e.start+e.dur))+'</b></div>'
+     +'<div><div class="k">Duur</div><b>'+(e.allDay?"—":fmtDur(e.dur))+'</b></div>'
+     +(e.recur?'<div><div class="k">Herhaling</div><b>elke '+e.recur.weeks+' '+(e.recur.weeks===1?"week":"weken")+'</b></div>':"")
+     +'</div>';
+    if(e.loc) h+='<div><div class="k">Locatie</div><div style="font-size:14px">'+esc(e.loc)+'</div></div>';
+    if(e.desc) h+='<div><div class="k">Beschrijving</div><div class="desc">'+esc(e.desc)+'</div></div>';
+    if(e.external) h+='<p class="faint small">Vanuit een ICS-abonnement of import – niet bewerkbaar.</p>';
+    else {
+      h+='<div class="row" style="justify-content:flex-end;flex-wrap:wrap">'
+       +'<button class="btn" data-toggledone="1">'+(done?"↩ Niet gedaan":"✓ Afgerond")+'</button>'
+       +(CONFIRM_DEL
+          ? '<button class="btn danger" data-delyes="1">Zeker weten?</button>'
+          : '<button class="btn danger" data-del="1">🗑 Verwijderen'+(e.recur?" (reeks)":"")+'</button>')
+       +'</div>';
+    }
+    h+='</div></div>';
+  }
+
+  /* add dialog */
+  if(DIALOG){
+    h+='<div class="overlay" data-close="dialog"><div class="modal">'
+     +'<div><div class="faint small">'+esc(nlDate(fromKey(DIALOG.date)))+' · '+fmtTime(DIALOG.start)+'</div><h3>Inplannen</h3></div>'
+     +'<input class="txt" id="evttitle" placeholder="Wat wil je doen?" value="'+esc(D_INPUT)+'"/>'
+     +'<div class="row"><span class="lbl">Agenda</span><select class="btn small" id="evtcal">'
+     + S.cals.map(function(c){ return '<option value="'+c.id+'"'+(c.id===D_CAL?" selected":"")+'>'+esc(c.name)+'</option>'; }).join("")+'</select></div>'
+     +'<div class="row"><span class="lbl">Duur</span><span class="chips">'
+     + [30,60,90,120].map(function(m){ return '<button class="btn small'+(D_DUR===m?" on":"")+'" data-dur="'+m+'">'+fmtDur(m)+'</button>'; }).join("")+'</span></div>'
+     +'<div class="row"><span class="lbl">Herhalen</span><span class="chips">'
+     + [0,1,2,7].map(function(w){ return '<button class="btn small'+(D_RECUR===w?" on":"")+'" data-recur="'+w+'">'+(w===0?"niet":w===1?"elke week":"elke "+w+" weken")+'</button>'; }).join("")+'</span></div>'
+     +'<div class="row"><span class="lbl">Geldigheid</span><span class="chips">'
+     +'<button class="btn small'+(D_ALLDAY?"":" on")+'" data-allday="0">Tijdslot</button>'
+     +'<button class="btn small'+(D_ALLDAY?" on":"")+'" data-allday="1">📌 Hele dag</button></span></div>'
+     +'<div class="row" style="justify-content:flex-end"><button class="btn" data-close="dialog">Annuleren</button>'
+     +'<button class="btn on" id="evtsave">Inplannen</button></div></div></div>';
+  }
+
+  /* subscription dialog */
+  if(SUBDIALOG){
+    h+='<div class="overlay" data-close="sub"><div class="modal"><h3>iCal-abonnement</h3>'
+     +'<p class="sub small">Plak de abonnementslink (webcal:// of https://). Lukt het niet (CORS), download het .ics-bestand dan handmatig en gebruik “ICS-bestand importeren”.</p>'
+     +'<input class="txt" id="suburl" placeholder="https://…/agenda.ics" value="'+esc(SUB_URL)+'"/>'
+     +'<div class="row"><span class="lbl">In agenda</span><select class="btn small" style="flex:1" id="subcal">'
+     + S.cals.map(function(c){ return '<option value="'+c.id+'"'+(c.id===SUB_CAL?" selected":"")+'>'+esc(c.name)+'</option>'; }).join("")+'</select></div>'
+     +'<div class="row" style="justify-content:flex-end"><button class="btn" data-close="sub">Annuleren</button>'
+     +'<button class="btn on" id="subadd">Toevoegen</button></div></div></div>';
+  }
+
+  /* share dialog */
+  if(SHAREFOR){
+    var cnt=S.events.filter(function(e){return e.calId===SHAREFOR.id;}).length;
+    h+='<div class="overlay" data-close="share"><div class="modal"><h3>“'+esc(SHAREFOR.name)+'” delen</h3>'
+     +'<p class="sub small">'+cnt+' gebeurtenissen. Stuur het ICS-bestand per e-mail, of laat de ontvanger het uploaden in hun eigen agenda-app.</p>'
+     +'<button class="btn on wide" id="shardl">⬇ ICS-bestand downloaden</button>'
+     +'<a class="btn wide" style="display:block;text-align:center;text-decoration:none" href="mailto:?subject='+encodeURIComponent("Agendadeling: "+SHAREFOR.name)+'&body='+encodeURIComponent("Hallo,\n\nIn bijlage vind je mijn agenda \u201C"+SHAREFOR.name+"\u201D. Je kunt deze importeren in Google Calendar, Apple Agenda of Outlook via \u201CImporteren\u201D.\n\nGroeten")+'">✉ Delen via e-mail</a>'
+     +'<p class="faint small">Tip: klik eerst op download en voeg het bestand toe als bijlage in je mailprogramma.</p>'
+     +'</div></div>';
+  }
+
+  /* new calendar dialog */
+  if(CALDIALOG){
+    h+='<div class="overlay" data-close="caldialog"><div class="modal"><h3>Nieuwe agenda</h3>'
+     +'<input class="txt" id="newcal" placeholder="Naam van de agenda…"/>'
+     +'<div class="row" style="justify-content:flex-end"><button class="btn" data-close="caldialog">Annuleren</button>'
+     +'<button class="btn on" id="newcalsave">Aanmaken</button></div></div></div>';
+  }
+
+  /* sync dialog */
+  if(SYNCDIALOG){
+    h+='<div class="overlay" data-close="sync"><div class="modal"><h3>Synchronisatie</h3>'
+     +'<p class="sub small">Vul de URL van je server in en kies een geheime sync-code. Gebruik dezelfde code op elk apparaat om dezelfde agenda te zien. De code werkt als wachtwoord: kies iets langs en deel het alleen met jezelf (en eventueel je vriendin).</p>'
+     +'<input class="txt" id="synurl" placeholder="Server-URL (bv. http://192.168.1.20:8181)" value="'+esc(SYN_URL)+'"/>'
+     +'<input class="txt" id="synkey" placeholder="Sync-code (min. 6 tekens)" value="'+esc(SYN_KEY)+'"/>'
+     +'<div class="row" style="justify-content:flex-end;flex-wrap:wrap">'
+     +(SYNC?'<button class="btn danger" data-syncoff="1">Verbinding verbreken</button>':"")
+     +'<button class="btn" data-close="sync">Annuleren</button>'
+     +'<button class="btn on" id="synsave">Verbinden</button></div></div></div>';
+  }
+
+  document.getElementById("app").innerHTML=h;
+
+  var titleEl=document.getElementById("evttitle");
+  if(titleEl){ titleEl.oninput=function(){ D_INPUT=this.value; }; titleEl.onkeydown=function(ev){ if(ev.key==="Enter") saveEvent(); }; setTimeout(function(){ titleEl.focus(); },50); }
+  var ti=document.getElementById("taskinput");
+  if(ti){ ti.onkeydown=function(ev){ if(ev.key==="Enter"){ addTask(this.value); render(); } }; document.getElementById("taskadd").onclick=function(){ addTask(ti.value); render(); }; }
+  var su=document.getElementById("suburl");
+  if(su){ su.oninput=function(){ SUB_URL=this.value.replace(/^webcal:\/\//i,"https://"); }; setTimeout(function(){ su.focus(); },50); }
+  var syu=document.getElementById("synurl");
+  if(syu){ syu.oninput=function(){ SYN_URL=this.value; }; var syk=document.getElementById("synkey");
+    if(syk) syk.oninput=function(){ SYN_KEY=this.value; };
+    setTimeout(function(){ syu.focus(); },50); }
+  var nc=document.getElementById("newcal");
+  if(nc){ nc.onkeydown=function(ev){ if(ev.key==="Enter" && this.value.trim()) addCal(this.value); }; setTimeout(function(){ nc.focus(); },50); }
+}
+function addCal(name){
+  S.cals.push({id:newId(),name:name.trim(),color:S.cals.length%CAL_COLORS.length,visible:true});
+  CALDIALOG=false; saveAll(); render();
+}
+
+/* ---------- event wiring (delegation) ---------- */
+document.addEventListener("click", function(ev){
+  var t=ev.target, el;
+  if(el=t.closest("[data-chk]")) { var e=findEvt(el.getAttribute("data-chk")); if(e){ ev.stopPropagation(); toggleDone(e, el.getAttribute("data-occ")); render(); } return; }
+  if(el=t.closest("[data-evt]")) { var e2=findEvt(el.getAttribute("data-evt")); if(e2){ DETAIL={e:e2, dk:el.getAttribute("data-occ")}; CONFIRM_DEL=false; render(); } return; }
+  if(el=t.closest(".slot")) { var col=el.closest("[data-day]"); if(col){ openSlot(col.getAttribute("data-day"), +el.getAttribute("data-start")); } return; }
+  if(el=t.closest("[data-mday]") && !t.closest("[data-evt]")) { openSlot(el.getAttribute("data-mday"), 9*60); return; }
+  if(el=t.closest("[data-vis]")) { calById(el.getAttribute("data-vis")).visible=el.checked; saveAll(); render(); return; }
+  if(el=t.closest("[data-share]")) { SHAREFOR=calById(el.getAttribute("data-share")); render(); return; }
+  if(el=t.closest("[data-delcal]")) { CONFIRM_CAL=el.getAttribute("data-delcal"); render(); return; }
+  if(el=t.closest("[data-delcalsn]")) { CONFIRM_CAL=null; render(); return; }
+  if(el=t.closest("[data-delcalsy]")) {
+    var cid=el.getAttribute("data-delcalsy");
+    S.cals=S.cals.filter(function(c){return c.id!==cid;});
+    S.events=S.events.filter(function(e){return e.calId!==cid;});
+    S.subs=S.subs.filter(function(s){return s.calId!==cid;});
+    CONFIRM_CAL=null; saveAll(); render(); return;
+  }
+  if(el=t.closest("[data-sync]")) { var id=el.getAttribute("data-sync"); var s=S.subs.filter(function(x){return x.id===id;})[0];
+    if(s){ setInfo("Verversen…"); syncSub(s).then(function(u){ saveAll(); setInfo(u.error?"Mislukt: "+u.error:"Ververst"); }); } return; }
+  if(el=t.closest("[data-unsub]")) { S.subs=S.subs.filter(function(x){return x.id!==el.getAttribute("data-unsub");}); saveAll(); render(); return; }
+  if(el=t.closest("[data-deltask]")) { S.tasks=S.tasks.filter(function(x){return x.id!==el.getAttribute("data-deltask");}); saveAll(); render(); return; }
+  if(el=t.closest("[data-del]")) { CONFIRM_DEL=true; render(); return; }
+  if(el=t.closest("[data-delyes]")) { if(DETAIL){ deleteEvent(DETAIL.e.id); DETAIL=null; CONFIRM_DEL=false; render(); } return; }
+  if(el=t.closest("[data-toggledone]")) { if(DETAIL){ toggleDone(DETAIL.e, DETAIL.dk); DETAIL=null; render(); } return; }
+  if(el=t.closest("[data-dur]")) { D_DUR=+el.getAttribute("data-dur"); render(); return; }
+  if(el=t.closest("[data-allday]")) { D_ALLDAY=el.getAttribute("data-allday")==="1"; render(); return; }
+  if(el=t.closest("[data-recur]")) { D_RECUR=+el.getAttribute("data-recur"); render(); return; }
+  if(t.getAttribute && t.getAttribute("data-close")) {
+    var k=t.getAttribute("data-close");
+    if(k==="detail") DETAIL=null; if(k==="dialog") DIALOG=null; if(k==="sub") SUBDIALOG=false;
+    if(k==="share") SHAREFOR=null; if(k==="caldialog") CALDIALOG=false;
+    if(k==="sync") SYNCDIALOG=false;
+    render(); return;
+  }
+  if(el=t.closest("[data-view]")) { setView(el.getAttribute("data-view")); return; }
+  if(el=t.closest("[data-nav]")) { var n=+el.getAttribute("data-nav"); if(n===0) goToday(); else nav(n); return; }
+  if(el=t.closest("[data-syncall]")) { syncAll(); return; }
+  if(el=t.closest("[data-theme]")) { toggleTheme(); return; }
+  if(el=t.closest("[data-opensub]")) { SUB_CAL=S.cals[0].id; SUB_URL=""; SUBDIALOG=true; render(); return; }
+  if(el=t.closest("[data-newcal]")) { CALDIALOG=true; render(); return; }
+  if(t.id==="evtsave") { saveEvent(); return; }
+  if(t.id==="synsave") { syncConnect(); return; }
+  if(el=t.closest("[data-syncset]")) { SYN_URL = SYNC?SYNC.url:""; SYN_KEY = SYNC?SYNC.key:""; SYNCDIALOG=true; render(); return; }
+  if(el=t.closest("[data-syncoff]")) { syncDisconnect(); return; }
+  if(el=t.closest("[data-syncnow]")) { syncPull(false); return; }
+  if(t.id==="newcalsave") { var inp=document.getElementById("newcal"); if(inp&&inp.value.trim()) addCal(inp.value); return; }
+  if(t.id==="shardl") { downloadICS(SHAREFOR); return; }
+  if(t.id==="subadd") {
+    if(!SUB_URL.trim()) return;
+    var sub={id:newId(), calId:document.getElementById("subcal").value, url:SUB_URL.trim(), events:[], lastSync:null, error:null};
+    SUBDIALOG=false; setInfo("Abonnement ophalen…");
+    syncSub(sub).then(function(u){ S.subs.push(u); saveAll(); setInfo(u.error?"Mislukt: "+u.error+". Probeer ↻ of importeer handmatig.":"Abonnement toegevoegd"); });
+    return;
+  }
+});
+function findEvt(id){
+  for(var i=0;i<S.events.length;i++) if(S.events[i].id===id) return S.events[i];
+  for(var j=0;j<S.subs.length;j++){ var e=S.subs[j].events.filter(function(x){return x.id===id;})[0]; if(e) return e; }
+  return null;
+}
+
+/* import select */
+document.addEventListener("change", function(ev){
+  var t=ev.target;
+  if(t.id==="importsel" && t.value){
+    var calId=t.value; t.selectedIndex=0;
+    var f=document.getElementById("importfile");
+    f.onchange=function(){
+      var file=this.files[0]; if(!file) return;
+      var reader=new FileReader();
+      reader.onload=function(){
+        var evs=icsToEvents(parseICS(reader.result), calId);
+        S.events=S.events.concat(evs); saveAll();
+        setInfo(evs.length+" gebeurtenissen geïmporteerd in "+calById(calId).name);
+      };
+      reader.readAsText(file); this.value="";
+    };
+    f.click();
+  }
+  if(t.id==="evtcal") D_CAL=t.value;
+  if(t.id==="subcal") SUB_CAL=t.value;
+});
+
+/* drag & drop */
+document.addEventListener("dragstart", function(ev){
+  var t=ev.target.closest ? ev.target : ev.target.parentElement;
+  var tk=t.closest && t.closest("[data-task]"); if(tk){ DRAG_ID=tk.getAttribute("data-task"); DRAG_TASK=true; return; }
+  var e=t.closest && t.closest(".evt"); if(!e) e=t.closest && t.closest(".allday");
+  if(e && e.getAttribute("draggable")==="true"){ DRAG_ID=e.getAttribute("data-evt"); DRAG_TASK=false; }
+});
+document.addEventListener("dragend", function(){ DRAG_ID=null; DRAG_TASK=false; });
+document.addEventListener("dragover", function(ev){
+  if(DRAG_ID && (ev.target.classList.contains("slot")||ev.target.closest("[data-mday]")||ev.target.closest(".daycol")||ev.target.closest("[data-aday]"))) ev.preventDefault();
+});
+document.addEventListener("drop", function(ev){
+  if(!DRAG_ID) return;
+  var slot=ev.target.closest(".slot"), dk, start;
+  if(slot){ dk=slot.closest("[data-day]").getAttribute("data-day"); start=+slot.getAttribute("data-start"); }
+  else {
+    var mc=ev.target.closest("[data-mday]") || ev.target.closest(".daycol") || ev.target.closest("[data-aday]"); if(!mc) return;
+    if(mc.getAttribute("data-mday")) dk=mc.getAttribute("data-mday");
+    else if(mc.getAttribute("data-aday")) dk=mc.getAttribute("data-aday");
+    else dk=mc.getAttribute("data-day");
+    start=9*60;
+  }
+  ev.preventDefault(); handleDrop(dk,start);
+});
+
+/* tick + escape */
+setInterval(function(){ S.now=new Date(); if(!DIALOG && !DETAIL) render(); }, 60000);
+document.addEventListener("keydown", function(ev){ if(ev.key==="Escape"){ DIALOG=null; DETAIL=null; SHAREFOR=null; SUBDIALOG=false; CALDIALOG=false; SYNCDIALOG=false; CONFIRM_DEL=false; CONFIRM_CAL=null; render(); } });
+if(SYNC){
+  SYNC_STATUS = "pulling";
+  syncPull(true).then(function(){
+    setInterval(function(){ if(!SYNC_DIRTY && !DIALOG && !DETAIL && !SYNCDIALOG) syncPull(true); }, 45000);
+  });
+}
+
+render();
+if(S.subs.length) syncAll();
+</script>
+</body>
+</html>

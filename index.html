@@ -81,8 +81,10 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .mgrid .mh { padding:8px 0; text-align:center; font-size:11px; text-transform:uppercase; color:var(--sub); border-bottom:1px solid var(--border); }
 .mcell { min-height:92px; border-bottom:1px solid var(--border-soft); border-right:1px solid var(--border-soft); padding:4px; }
 /* mobiel */
-.hamburger { display:none; background:none; border:0; font-size:22px; cursor:pointer; padding:4px 8px; }
-@media(max-width:999px){ .hamburger { display:block; } .layout { grid-template-columns:1fr; } }
+.hamburger { display:block; background:none; border:0; font-size:22px; cursor:pointer; padding:4px 8px; }
+.todaybadge { background:var(--btn-bg); border:1px solid var(--btn-border); border-radius:10px; width:34px; height:34px; display:grid; place-items:center; cursor:pointer; font-size:15px; font-weight:700; color:var(--accent); flex:none; }
+.todaybadge:hover { background:var(--btn-hover); }
+@media(max-width:999px){ .layout { grid-template-columns:1fr; } }
 .drawer { position:fixed; top:0; right:0; bottom:0; width:300px; max-width:85vw; background:var(--panel); border-left:1px solid var(--border); z-index:40; box-shadow:-8px 0 30px rgba(0,0,0,.2); padding:16px; overflow-y:auto; }
 .drawer-back { position:fixed; inset:0; background:rgba(15,23,42,.4); z-index:39; }
 .drawer h3 { font-size:15px; margin:0 0 10px; }
@@ -393,16 +395,15 @@ function render(){
   var rows=(END_HOUR-START_HOUR)*60/SLOT_MIN;
   var weekTotal=weekDays.reduce(function(s,d){ return s+occsFor(dateKey(d)).filter(function(e){return !e.allDay;}).reduce(function(a,e){return a+e.dur;},0); },0);
 
-  var h='<header><div class="hwrap"><button class="hamburger" data-drawer="1">☰</button><div class="logo">M</div><h1>Mijn Agenda</h1>';
-  h+='<div class="row"><button class="btn'+(S.view==="week"?" on":"")+'" data-view="week">Week</button>'
-   +'<button class="btn'+(S.view==="month"?" on":"")+'" data-view="month">Maand</button></div>';
-  h+='<div class="row"><button class="btn" data-nav="-1">←</button><button class="btn" data-nav="0">Vandaag</button>'
-   +'<button class="btn" data-nav="1">→</button><button class="btn" title="Abonnementen verversen" data-syncall="1">↻</button></div>';
+  var h='<header><div class="hwrap">'
+   +'<button class="todaybadge" data-nav="0" title="Vandaag">'+today.getDate()+'</button>';
   h+='<div class="sub small">'+(S.view==="week"
       ? esc(nlDate(weekDays[0]))+" – "+esc(nlDate(weekDays[6]))+' <span class="faint">· '+Math.round(weekTotal/60)+'u gepland</span>'
       : esc(S.monthCursor.toLocaleDateString("nl-NL",{month:"long",year:"numeric"})))+'</div>';
   h+='<div class="row" style="margin-left:auto">'+(INFO?'<span class="toast">'+esc(INFO)+'</span>':"")
-   +'<button class="btn" title="Donkere modus" data-theme="1">'+(dark?"☀️":"🌙")+'</button></div></div></header>';
+   +'<button class="btn" title="Abonnementen verversen" data-syncall="1">↻</button>'
+   +'<button class="btn" title="Donkere modus" data-theme="1">'+(dark?"☀️":"🌙")+'</button>'
+   +'<button class="hamburger" data-drawer="1">☰</button></div></div></header>';
 
   h+='<div class="layout"><div>';
   if(S.view==="week"){
@@ -469,7 +470,9 @@ function render(){
   h+='<p class="info-l">Klik op een leeg slot om in te plannen · klik op een afspraak voor details · sleep om te verplaatsen</p></div>';
 
   /* sidebar */
-  h+=(DRAWER?'<div class="drawer-back" data-drawer-close="1"></div><div class="drawer"><button class="close" data-drawer-close="1">✕</button><h3>Menu</h3>':'<aside>')+'<div class="card pad"><div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="section-title">Agenda\u2019s</span>'
+  h+=(DRAWER?'<div class="drawer-back" data-drawer-close="1"></div><div class="drawer"><button class="close" data-drawer-close="1">✕</button><h3>Menu</h3>'
+   +'<div class="row" style="margin-bottom:12px"><button class="btn'+(S.view==="week"?" on":"")+'" data-view="week">Week</button>'
+   +'<button class="btn'+(S.view==="month"?" on":"")+'" data-view="month">Maand</button></div>':'<aside>')+'<div class="card pad"><div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="section-title">Agenda\u2019s</span>'
    +'<button class="btn" style="font-size:12px" data-newcal="1">+ nieuw</button></div>';
   S.cals.forEach(function(c){
     var col=CAL_COLORS[c.color%CAL_COLORS.length];
@@ -638,6 +641,7 @@ function addCal(name){
 
 /* ---------- event wiring (delegation) ---------- */
 document.addEventListener("click", function(ev){
+  if(CLICK_SUPPRESS){ CLICK_SUPPRESS=false; return; }
   var t=ev.target, el;
   if(el=t.closest("[data-chk]")) { var e=findEvt(el.getAttribute("data-chk")); if(e){ ev.stopPropagation(); toggleDone(e, el.getAttribute("data-occ")); render(); } return; }
   if(el=t.closest("[data-evt]")) { var e2=findEvt(el.getAttribute("data-evt")); if(e2){ DETAIL={e:e2, dk:el.getAttribute("data-occ")}; CONFIRM_DEL=false; render(); } return; }
@@ -749,21 +753,29 @@ document.addEventListener("drop", function(ev){
 
 /* tick + escape */
 setInterval(function(){ S.now=new Date(); if(!DIALOG && !DETAIL) render(); }, 60000);
-/* swipe links/rechts = week wisselen (weekweergave) */
-var SWIPE_X=null, SWIPE_Y=null, SWIPE_T=null;
+/* swipe links/rechts = week wisselen (weekweergave) + tik-onderdrukking na scrollen */
+var SWIPE_X=null, SWIPE_Y=null, SWIPE_T=null, TOUCH_MOVED=false, CLICK_SUPPRESS=false;
 document.addEventListener("touchstart", function(ev){
+  TOUCH_MOVED=false;
   if(ev.touches.length!==1 || S.view!=="week" || DIALOG || DETAIL || DRAWER || SUBDIALOG || CALDIALOG) { SWIPE_X=null; return; }
   var t=ev.touches[0];
   if(t.target.closest && (t.target.closest(".evt") || t.target.closest(".allday") || t.target.closest("[data-task]") || t.target.closest(".drawer") || t.target.closest("header"))) { SWIPE_X=null; return; }
   SWIPE_X=t.clientX; SWIPE_Y=t.clientY; SWIPE_T=Date.now();
+}, {passive:true});
+document.addEventListener("touchmove", function(ev){
+  if(SWIPE_X===null) return;
+  var t=ev.touches[0];
+  if(Math.abs(t.clientY-SWIPE_Y)>12 || Math.abs(t.clientX-SWIPE_X)>12) TOUCH_MOVED=true;
 }, {passive:true});
 document.addEventListener("touchend", function(ev){
   if(SWIPE_X===null) return;
   var t=ev.changedTouches[0];
   var dx=t.clientX-SWIPE_X, dy=t.clientY-SWIPE_Y, dt=Date.now()-SWIPE_T;
   SWIPE_X=null;
+  if(TOUCH_MOVED){ CLICK_SUPPRESS=true; setTimeout(function(){ CLICK_SUPPRESS=false; }, 400); }
   if(dt>700) return;
   if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5){
+    CLICK_SUPPRESS=true; setTimeout(function(){ CLICK_SUPPRESS=false; }, 400);
     if(dx<0) nav(1); else nav(-1);
   }
 }, {passive:true});

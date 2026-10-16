@@ -58,7 +58,6 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .is-today { background:var(--today-bg); }
 .grid-body { display:grid; grid-template-columns:56px repeat(7,1fr); }
 @media(max-width:999px){
-  .grid-head { top:0 !important; }
   .grid-head, .grid-body { grid-template-columns:40px repeat(7,1fr); }
   .hwrap { padding:6px 8px; gap:6px; }
   .layout { padding:0; }
@@ -646,6 +645,10 @@ function render(){
   var hd=document.querySelector("header"), gh=document.querySelector(".grid-head"), ar=document.querySelector(".alldayrow");
   if(hd && gh){ gh.style.top = hd.offsetHeight + "px"; }
   if(hd && gh && ar){ ar.style.top = (hd.offsetHeight + gh.offsetHeight) + "px"; }
+  if(!window.__stickyInit){
+    window.__stickyInit=true;
+    window.addEventListener("resize", function(){ render(); });
+  }
 }
 function addCal(name){
   S.cals.push({id:newId(),name:name.trim(),color:S.cals.length%CAL_COLORS.length,visible:true});

@@ -60,13 +60,17 @@ button, select, input, textarea { font:inherit; color:inherit; }
 @media(max-width:999px){
   .hwrap { height:44px; padding:0 8px; gap:8px; flex-wrap:nowrap; }
   header { border-bottom:none; }
-  .grid-head { border-bottom:1px solid var(--border); box-shadow:0 -1px 0 var(--border); }
+  .grid-head { border-bottom:none; box-shadow:none; }
+  .grid-head .dh { height:44px; padding:0; }
   .grid-head, .grid-body, .alldayrow { grid-template-columns:40px repeat(7,1fr); }
+  .alldayrow { border-bottom:none; box-shadow:none; }
   .alldayrow .adc { min-height:26px; padding:5px 3px; }
-  .allday { padding:2px 6px; margin-bottom:2px; }  .layout { padding:0; }
+  .allday { padding:2px 6px; margin-bottom:2px; }
+  .layout > div:first-child > .weekcard { border-radius:0; border:0; border-top:0; box-shadow:none; }
+  .layout > div:first-child > .card { border-radius:0; border:0; border-top:0; box-shadow:none; }  .layout { padding:0; }
   .sidecol { display:none; }
-  .layout > div:first-child > .weekcard { border-radius:0; border:0; border-top:1px solid var(--border); box-shadow:none; }
-  .layout > div:first-child > .card { border-radius:0; border:0; border-top:1px solid var(--border); box-shadow:none; }
+  .layout > div:first-child > .weekcard { border-radius:0; border:0; box-shadow:none; }
+  .layout > div:first-child > .card { border-radius:0; border:0; box-shadow:none; }
   .layout > div:first-child { padding:0; }
   .evt { font-size:11.5px; }
   .hour-label { font-size:12px; }

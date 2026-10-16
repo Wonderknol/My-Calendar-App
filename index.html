@@ -58,9 +58,12 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .is-today { background:var(--today-bg); }
 .grid-body { display:grid; grid-template-columns:56px repeat(7,1fr); }
 @media(max-width:999px){
+  .hwrap { height:44px; padding:0 8px; gap:8px; flex-wrap:nowrap; }
+  header { border-bottom:none; }
+  .grid-head { border-bottom:1px solid var(--border); box-shadow:0 -1px 0 var(--border); }
   .grid-head, .grid-body, .alldayrow { grid-template-columns:40px repeat(7,1fr); }
-  .hwrap { padding:6px 8px; gap:6px; }
-  .layout { padding:0; }
+  .alldayrow .adc { min-height:26px; padding:5px 3px; }
+  .allday { padding:2px 6px; margin-bottom:2px; }  .layout { padding:0; }
   .sidecol { display:none; }
   .layout > div:first-child > .weekcard { border-radius:0; border:0; border-top:1px solid var(--border); box-shadow:none; }
   .layout > div:first-child > .card { border-radius:0; border:0; border-top:1px solid var(--border); box-shadow:none; }
@@ -643,8 +646,8 @@ function render(){
   if(nc){ nc.onkeydown=function(ev){ if(ev.key==="Enter" && this.value.trim()) addCal(this.value); }; setTimeout(function(){ nc.focus(); },50); }
   /* allday-rij net onder de sticky dagheaders laten plakken */
   var hd=document.querySelector("header"), gh=document.querySelector(".grid-head"), ar=document.querySelector(".alldayrow");
-  if(hd && gh){ gh.style.top = (hd.offsetHeight - 1) + "px"; }
-  if(hd && gh && ar){ ar.style.top = (hd.offsetHeight + gh.offsetHeight - 2) + "px"; }
+  if(hd && gh){ gh.style.top = Math.ceil(hd.getBoundingClientRect().height) + "px"; }
+  if(hd && gh && ar){ ar.style.top = (Math.ceil(hd.getBoundingClientRect().height) + Math.ceil(gh.getBoundingClientRect().height)) + "px"; }
   if(!window.__stickyInit){
     window.__stickyInit=true;
     window.addEventListener("resize", function(){ render(); });

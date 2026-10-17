@@ -373,8 +373,16 @@ function colOf(cal){
 /* ---------- actions ---------- */
 function toggleTheme(){ S.theme = S.theme==="dark"?"light":"dark"; saveAll(); render(); }
 function setView(v){ S.view=v; render(); }
+function scrollToNow(smooth){
+  if(S.view!=="week") return;
+  var nl=document.querySelector(".nowline");
+  if(!nl) return;
+  var scroller=document.scrollingElement || document.body;
+  var y=nl.getBoundingClientRect().top + window.scrollY - window.innerHeight*0.3;
+  scroller.scrollTo({ top:Math.max(0,y), behavior: smooth?"smooth":"auto" });
+}
 function nav(d){ if(S.view==="week") S.weekOffset+=d; else S.monthCursor=new Date(S.monthCursor.getFullYear(), S.monthCursor.getMonth()+d, 1); render(); }
-function goToday(){ S.weekOffset=0; S.monthCursor=startOfMonth(new Date()); render(); }
+function goToday(){ S.weekOffset=0; S.monthCursor=startOfMonth(new Date()); render(); setTimeout(function(){ scrollToNow(true); }, 50); }
 function openSlot(dk,start){ D_INPUT=""; D_DUR=60; D_RECUR=0; D_ALLDAY=false; D_CAL=S.cals[0].id; CONFIRM_DEL=false; DIALOG={date:dk,start:start}; render(); }
 function saveEvent(){
   if(!D_INPUT.trim()) return;
@@ -669,6 +677,7 @@ function render(){
   var hd=document.querySelector("header"), gh=document.querySelector(".grid-head"), ar=document.querySelector(".alldayrow");
   if(hd && gh){ gh.style.top = Math.ceil(hd.getBoundingClientRect().height) + "px"; }
   if(hd && gh && ar){ ar.style.top = (Math.ceil(hd.getBoundingClientRect().height) + Math.ceil(gh.getBoundingClientRect().height)) + "px"; }
+  if(gh){ gh.id="gridhead"; }
   if(!window.__stickyInit){
     window.__stickyInit=true;
     window.addEventListener("resize", function(){ render(); });
@@ -835,7 +844,9 @@ document.addEventListener("touchend", function(ev){
     if(dx<0) nav(1); else nav(-1);
   }
 }, {passive:true});
-document.addEventListener("keydown", function(ev){ if(ev.key==="Escape"){ DIALOG=null; DETAIL=null; SHAREFOR=null; SUBDIALOG=false; CALDIALOG=false; SYNCDIALOG=false; CONFIRM_DEL=false; CONFIRM_CAL=null; render(); } });
+document.addEventListener("keydown", function(ev){ if(ev.key==="Escape"){ DIALOG=null; DETAIL=null; SHAREFOR=null; SUBDIALOG=false; CALDIALOG=false; SYNCDIALOG=false; CONFIRM_DEL=false; CONFIRM_CAL=null; DRAWER=false; render(); } });
+render();
+scrollToNow(false); /* bij opstarten meteen naar de rode nu-lijn scrollen */
 if(SYNC){
   SYNC_STATUS = "pulling";
   syncPull(true).then(function(){

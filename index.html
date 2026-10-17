@@ -22,10 +22,15 @@
   --today-bg:transparent; --slot-hover:#E8DEF8; --chip:#EFEAF4; --overlay:rgba(28,25,23,.5);
 }
 .dark {
-  --bg:#020617; --panel:#0f172a; --border:#1e293b; --border-soft:#16213a;
-  --text:#f1f5f9; --sub:#94a3b8; --faint:#64748b; --accent:#6366f1;
-  --btn-bg:#1e293b; --btn-border:#334155; --btn-hover:#334155;
-  --today-bg:rgba(99,102,241,.12); --slot-hover:rgba(99,102,241,.2); --chip:#1e293b;
+  --bg:#141218; --panel:#1D1B20; --border:#49454F; --border-soft:#2B2930;
+  --text:#E6E1E5; --sub:#CAC4D0; --faint:#938F99; --accent:#D0BCFF;
+  --primary:#D0BCFF; --on-primary:#381E72;
+  --primary-container:#4F378B; --on-primary-container:#EADDFF;
+  --secondary-container:#4A4458; --on-secondary-container:#E8DEF8;
+  --surface-container:#211F26; --surface-container-high:#2B2930;
+  --btn-bg:#211F26; --btn-border:#49454F; --btn-hover:#2B2930;
+  --today-bg:transparent; --slot-hover:#4A4458; --chip:#211F26;
+  --overlay:rgba(0,0,0,.5);
 }
 * { box-sizing:border-box; margin:0; }
 body { font-family:"Roboto Flex",Roboto,-apple-system,"SF Pro Text","Segoe UI",system-ui,sans-serif; background:var(--bg); color:var(--text); }
@@ -40,7 +45,8 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .btn.danger { background:#B3261E; color:#fff; }
 .btn.danger:hover { background:#9C1B14; }
 .btn.wide { width:100%; padding:8px; }
-.txt { background:var(--surface-container); border:0; border-bottom:1px solid var(--faint); border-radius:8px 8px 0 0; padding:8px 12px; font-size:14px; width:100%; }
+.txt { background:var(--surface-container); border:0; border-radius:12px; padding:10px 14px; font-size:15px; width:100%; }
+.txt:focus { background:var(--panel); outline:2px solid var(--primary); outline-offset:-2px; }
 .txt:focus, .btn:focus-visible { outline:2px solid var(--primary); outline-offset:1px; }
 .layout { max-width:1200px; margin:0 auto; padding:16px; display:grid; grid-template-columns:1fr; gap:16px; }
 @media(min-width:1000px){ .layout { grid-template-columns:9fr 3fr; } }
@@ -51,7 +57,7 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .alldayrow .adc { min-height:22px; padding:2px 4px; display:flex; flex-direction:column; gap:2px; min-width:0; }
 .alldayrow .adc .allday { width:100%; min-width:0; }
 .alldayrow .adc-label { font-size:9px; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); text-align:center; line-height:20px; }
-.allday { padding:2px 6px; margin-bottom:2px; border-radius:6px; font-size:10px; font-weight:600; cursor:pointer; line-height:16px; white-space:nowrap; overflow:hidden; color:var(--text); }
+.allday { padding:2px 6px; margin-bottom:2px; border-radius:6px; font-size:10px; font-weight:600; cursor:pointer; line-height:16px; white-space:nowrap; overflow:hidden; color:#1D1B20; }
 .pad { padding:16px; }
 .sub { color:var(--sub); } .faint { color:var(--faint); }
 .small { font-size:12px; }
@@ -89,7 +95,7 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .slot:hover { background:var(--slot-hover); }
 .slot.odd { border-top-width:0; }
 .daycol { position:relative; border-left:1px solid var(--border-soft); }
-.evt { position:absolute; left:2px; right:2px; border-radius:8px; padding:4px 6px; overflow:hidden; cursor:pointer; font-size:12.5px; line-height:1.3; color:#fff; }
+.evt { position:absolute; left:2px; right:2px; border-radius:8px; padding:4px 6px; overflow:hidden; cursor:pointer; font-size:12.5px; line-height:1.3; color:#1D1B20; }
 .evt .t { font-weight:600; display:flex; align-items:center; gap:4px; }
 .evt .t span { overflow:hidden; white-space:nowrap; }
 .evt .m { font-size:10px; opacity:.75; display:flex; justify-content:space-between; }
@@ -110,7 +116,7 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .todaybadge { background:var(--surface-container); border:0; border-radius:999px; width:32px; height:32px; display:grid; place-items:center; cursor:pointer; font-size:13px; font-weight:500; color:var(--sub); flex:none; }
 .todaybadge:hover { background:var(--btn-hover); }
 @media(max-width:999px){ .layout { grid-template-columns:1fr; } }
-.drawer { position:fixed; top:0; right:0; bottom:0; width:300px; max-width:85vw; background:var(--panel); border:0; z-index:40; box-shadow:0 8px 40px rgba(0,0,0,.25); padding:16px; overflow-y:auto; }
+.drawer { position:fixed; top:0; right:0; height:100dvh; width:300px; max-width:85vw; background:var(--panel); border:0; z-index:40; box-shadow:0 8px 40px rgba(0,0,0,.25); padding:16px; overflow-y:auto; }
 .drawer.anim-in { animation:drawer-in .3s cubic-bezier(.2,0,0,1); }
 .drawer.anim-out { animation:drawer-out .25s cubic-bezier(.3,0,.8,.15) forwards; }
 @keyframes drawer-in { from { transform:translateX(100%); } }
@@ -130,16 +136,17 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .mcell .d { font-size:12px; font-weight:600; margin-bottom:4px; color:var(--sub); }
 .mcell.is-today .d { color:var(--accent); }
 .mchip { font-size:10px; padding:2px 8px; border-radius:999px; margin-bottom:2px; cursor:pointer; overflow:hidden; white-space:nowrap; text-overflow:clip; }
-.calli { display:flex; align-items:center; gap:8px; padding:4px 0; font-size:14px; }
-.calli .dot { width:10px; height:10px; border-radius:50%; flex:none; }
-.calli label { display:flex; align-items:center; gap:8px; flex:1; cursor:pointer; }
-.calli input { accent-color:var(--accent); }
+.calli { display:flex; align-items:center; gap:8px; padding:8px 0; font-size:15px; min-width:0; }
+.calli .dot { width:12px; height:12px; border-radius:50%; flex:none; }
+.calli label { display:flex; align-items:center; gap:10px; flex:1; cursor:pointer; min-width:0; }
+.calli .nm { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; min-width:0; }
+.calli input { accent-color:var(--accent); flex:none; }
 .calswatch { width:32px; height:32px; border-radius:50%; border:0; cursor:pointer; position:relative; }
 .calswatch.sel { outline:3px solid var(--primary); outline-offset:2px; }
-.calli .act { visibility:hidden; font-size:12px; cursor:pointer; background:none; border:0; color:var(--faint); }
-.calli:hover .act { visibility:visible; }
-.calli .act:hover { color:var(--accent); }
-.calli .act.del:hover { color:#f43f5e; }
+.calli .act { background:none; border:0; color:var(--sub); flex:none; width:40px; height:40px; display:grid; place-items:center; cursor:pointer; border-radius:50%; }
+.calli .act:hover { background:var(--surface-container); }
+.calli .act svg { pointer-events:none; }
+@media(max-width:999px){ .calli .act { width:44px; height:44px; } }
 .taskitem { display:flex; justify-content:space-between; align-items:center; background:var(--surface-container); border:0; border-radius:12px; padding:10px 12px; font-size:14px; margin-bottom:8px; cursor:grab; }
 .taskitem .x { border:0; background:none; color:var(--faint); cursor:pointer; font-size:12px; }
 .taskitem .x:hover { color:#f43f5e; }
@@ -157,6 +164,9 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:14px; }
 .detail-grid .k { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); }
 .desc { font-size:14px; white-space:pre-wrap; background:var(--surface-container); border:0; border-radius:12px; padding:12px; }
+.alldaychk { display:flex; align-items:center; gap:10px; font-size:15px; cursor:pointer; padding:4px 0; user-select:none; }
+.alldaychk input { width:20px; height:20px; accent-color:var(--primary); flex:none; }
+.alldaychk svg { color:var(--sub); flex:none; }
 .section-title { font-size:14px; font-weight:600; margin-bottom:4px; }
 </style>
 </head>
@@ -524,7 +534,7 @@ function render(){
   h+='<button class="fab" data-fab="1" title="Nieuwe afspraak" aria-label="Nieuwe afspraak">+</button>';
 
   /* sidebar */
-  h+=(DRAWER?'<div class="drawer-back'+(DRAWER_ANIM===true?' anim-in':DRAWER_ANIM==="out"?' anim-out':'')+'" data-drawer-close="1"></div><div class="drawer'+(DRAWER_ANIM===true?' anim-in':DRAWER_ANIM==="out"?' anim-out':'')+'"><button class="close" data-drawer-close="1">✕</button><h3>Menu</h3>'
+  h+=(DRAWER?'<div class="drawer-back'+(DRAWER_ANIM===true?' anim-in':DRAWER_ANIM==="out"?' anim-out':'')+'" data-drawer-close="1"></div><div class="drawer'+(DRAWER_ANIM===true?' anim-in':DRAWER_ANIM==="out"?' anim-out':'')+'"><button class="close" data-drawer-close="1" aria-label="Sluiten"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button><h3>Menu</h3>'
    +'<div class="row" style="margin-bottom:12px"><button class="btn'+(S.view==="week"?" on":"")+'" data-view="week">Week</button>'
    +'<button class="btn'+(S.view==="month"?" on":"")+'" data-view="month">Maand</button>'
    +'<button class="btn iconbtn" data-theme="1" title="Donkere/lichte modus">'+(dark
@@ -534,27 +544,29 @@ function render(){
    +'<button class="btn" style="font-size:12px" data-newcal="1">+ nieuw</button></div>';
   S.cals.forEach(function(c){
     var col=CAL_COLORS[c.color%CAL_COLORS.length];
-    h+='<div class="calli"><label><input type="checkbox" data-vis="'+c.id+'"'+(c.visible?" checked":"")+'/><span class="dot" style="background:'+col.hex+'"></span><span'+(c.visible?"":' class="faint"')+'>'+esc(c.name)+'</span></label>';
+    h+='<div class="calli"><label><input type="checkbox" data-vis="'+c.id+'"'+(c.visible?" checked":"")+'/><span class="dot" style="background:'+col.hex+'"></span><span class="nm'+(c.visible?"":" faint")+'">'+esc(c.name)+'</span></label>';
+    h+='<button class="act" data-share="'+c.id+'" title="Delen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></button>';
+    h+='<button class="act" data-editcal="'+c.id+'" title="Naam en kleur aanpassen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>';
     h+='<button class="act" data-share="'+c.id+'">delen</button>';
     h+='<button class="act" data-editcal="'+c.id+'" title="Naam en kleur aanpassen">✎</button>';
     if(CONFIRM_CAL===c.id){
       h+='<span class="row"><button class="btn danger" style="font-size:11px;padding:2px 6px" data-delcalsy="'+c.id+'">zeker?</button>'
-       +'<button class="act" style="visibility:visible" data-delcalsn="1">✕</button></span>';
+       +'<button class="act" data-delcalsn="1" title="Annuleren"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></span>';
     } else if(S.cals.length>1){
-      h+='<button class="act del" title="Agenda verwijderen" data-delcal="'+c.id+'">🗑</button>';
+      h+='<button class="act" title="Agenda verwijderen" data-delcal="'+c.id+'"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>';
     }
     h+='</div>';
   });
   h+='</div><div class="drawer-sec" style="border-top:1px solid var(--border-soft);margin-top:16px;padding-top:12px;display:flex;flex-direction:column;gap:8px">';
-   +'<button class="btn wide small" data-opensub="1">🔗 iCal-abonnement toevoegen</button>'
-   +'<select class="btn wide small" id="importsel"><option value="">📥 ICS-bestand importeren in…</option>'
+   +'<button class="btn wide small" data-opensub="1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>iCal-abonnement toevoegen</button>'
+   +'<select class="btn wide small" id="importsel"><option value="">ICS-bestand importeren in…</option>'
    + S.cals.map(function(c){ return '<option value="'+c.id+'">'+esc(c.name)+'</option>'; }).join("")
    +'</select><input type="file" id="importfile" accept=".ics,text/calendar" style="display:none"/>';
   if(S.subs.length){
     h+='<div>';
     S.subs.forEach(function(s){
-      h+='<div class="row small sub" style="justify-content:space-between"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(s.url)+'">🔗 '+esc(calById(s.calId).name)+' ('+s.events.length+')'+(s.error?" ⚠":"")+'</span>'
-       +'<span class="row"><button class="btn" style="font-size:11px;padding:2px 6px" data-sync="'+s.id+'">↻</button><button class="btn" style="font-size:11px;padding:2px 6px" data-unsub="'+s.id+'">✕</button></span></div>';
+      h+='<div class="row small sub" style="justify-content:space-between"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(s.url)+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>'+esc(calById(s.calId).name)+' ('+s.events.length+')'+(s.error?" ⚠":"")+'</span>'
+       +'<span class="row"><button class="btn iconbtn" data-sync="'+s.id+'" title="Verversen"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v5h-5"/></svg></button><button class="btn iconbtn" data-unsub="'+s.id+'" title="Verwijderen"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></span></div>';
     });
     h+='</div>';
   }
@@ -563,13 +575,13 @@ function render(){
   /* Inbox-sectie verwijderd: nieuwe taken via raster of FAB */
   /* sync — gewone sectie in het menu, geen kaart */
   h+='<div class="drawer-sec" style="margin-top:16px"><div class="row" style="justify-content:space-between;margin-bottom:6px"><span class="section-title">Synchronisatie</span>'
-   +(SYNC?'<button class="btn" style="font-size:12px" data-syncset="1">⚙</button>':"")+'</div>';
+   +(SYNC?'<button class="btn iconbtn" data-syncset="1" title="Synchronisatie-instellingen"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.82-.33 1.7 1.7 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.51 1.7 1.7 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .33-1.82 1.7 1.7 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.51-1 1.7 1.7 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.82.33h0a1.7 1.7 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.51h0a1.7 1.7 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.33 1.82v0a1.7 1.7 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z"/></svg></button>':"")+'</div>';
   if(SYNC){
-    var st = SYNC_STATUS==="ok" ? '<span style="color:#10b981">🟢 Gesynchroniseerd</span>'
-      : SYNC_STATUS==="pushing" ? '<span class="faint">⏳ Opslaan naar server…</span>'
-      : SYNC_STATUS==="pulling" ? '<span class="faint">⏳ Ophalen…</span>'
-      : SYNC_STATUS==="error" ? '<span style="color:#f43f5e">🔴 Verbinding mislukt</span>'
-      : '<span class="faint">⏳ Verbinden…</span>';
+    var st = SYNC_STATUS==="ok" ? '<span style="color:#10b981;display:inline-flex;align-items:center;gap:6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Gesynchroniseerd</span>'
+      : SYNC_STATUS==="pushing" ? '<span class="faint">Opslaan naar server…</span>'
+      : SYNC_STATUS==="pulling" ? '<span class="faint">Ophalen…</span>'
+      : SYNC_STATUS==="error" ? '<span style="color:#f43f5e;display:inline-flex;align-items:center;gap:6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v5"/><circle cx="12" cy="16.5" r=".5" fill="currentColor"/><circle cx="12" cy="12" r="9"/></svg>Verbinding mislukt</span>'
+      : '<span class="faint">Verbinden…</span>';
     h+='<div class="small sub">'+st+'</div>'
      +'<p class="faint small" style="margin-top:4px" title="'+esc(SYNC.url)+'">'+esc(SYNC.url.replace(/^https?:\/\//,"").slice(0,30))+' · code: '+esc(SYNC.key.slice(0,2))+'•••</p>'
   } else {
@@ -618,9 +630,7 @@ function render(){
      + [30,60,90,120].map(function(m){ return '<button class="btn small'+(D_DUR===m?" on":"")+'" data-dur="'+m+'">'+fmtDur(m)+'</button>'; }).join("")+'</span></div>'
      +'<div class="row"><span class="lbl">Herhalen</span><span class="chips">'
      + [0,1,2,7].map(function(w){ return '<button class="btn small'+(D_RECUR===w?" on":"")+'" data-recur="'+w+'">'+(w===0?"niet":w===1?"elke week":"elke "+w+" weken")+'</button>'; }).join("")+'</span></div>'
-     +'<div class="row"><span class="lbl">Geldigheid</span><span class="chips">'
-     +'<button class="btn small'+(D_ALLDAY?"":" on")+'" data-allday="0">Tijdslot</button>'
-     +'<button class="btn small'+(D_ALLDAY?" on":"")+'" data-allday="1">📌 Hele dag</button></span></div>'
+     +'<label class="alldaychk"><input type="checkbox" data-allday="1"'+(D_ALLDAY?" checked":"")+'/><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Hele dag</span></label></div>'
      +'</div></div>';
   }
 
@@ -741,7 +751,7 @@ document.addEventListener("click", function(ev){
   if(el=t.closest("[data-delyes]")) { if(DETAIL){ deleteEvent(DETAIL.e.id); DETAIL=null; CONFIRM_DEL=false; render(); } return; }
   if(el=t.closest("[data-toggledone]")) { if(DETAIL){ toggleDone(DETAIL.e, DETAIL.dk); DETAIL=null; render(); } return; }
   if(el=t.closest("[data-dur]")) { D_DUR=+el.getAttribute("data-dur"); render(); return; }
-  if(el=t.closest("[data-allday]")) { D_ALLDAY=el.getAttribute("data-allday")==="1"; render(); return; }
+  if(el=t.closest("[data-allday]")) { D_ALLDAY=el.checked; render(); return; }
   if(el=t.closest("[data-recur]")) { D_RECUR=+el.getAttribute("data-recur"); render(); return; }
   if(t.getAttribute && t.getAttribute("data-close")) {
     var k=t.getAttribute("data-close");

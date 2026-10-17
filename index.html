@@ -61,7 +61,7 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .pad { padding:16px; }
 .sub { color:var(--sub); } .faint { color:var(--faint); }
 .small { font-size:12px; }
-.grid-head { display:grid; grid-template-columns:56px repeat(7,1fr); border-bottom:1px solid var(--border); position:sticky; top:57px; z-index:9; background:var(--panel); }
+.grid-head { display:grid; grid-template-columns:56px repeat(7,1fr); border-bottom:1px solid var(--border); position:sticky; top:57px; z-index:9; background:var(--panel); box-shadow:0 -1px 0 var(--panel); }
 .grid-head .dh { padding:12px 0 10px; text-align:center; }
 .dh .dw { font-size:10px; text-transform:none; letter-spacing:0; color:var(--faint); margin-bottom:4px; }
 .dh .dn { font-size:14px; font-weight:600; height:32px; display:flex; align-items:center; justify-content:center; }
@@ -86,7 +86,7 @@ button, select, input, textarea { font:inherit; color:inherit; }
   .evt { font-size:11.5px; }
   .hour-label { font-size:12px; }
   .dh .dn { font-size:15px; }
-  .overlay { align-items:flex-start; padding:7vh 0 0; }
+  .overlay { align-items:flex-start; padding:6vh 0 30vh; overflow-y:auto; }
   .modal { max-width:100%; border-radius:16px 16px 0 0; margin:0; }
   .modal .modal-head { display:flex; align-items:flex-start; justify-content:space-between; }
 }
@@ -127,11 +127,13 @@ button, select, input, textarea { font:inherit; color:inherit; }
 @keyframes fade-in { from { opacity:0; } }
 @keyframes fade-out { to { opacity:0; } }
 @keyframes sheet-in { from { transform:translateY(24px); opacity:0; } }
-.modal { animation:sheet-in .25s cubic-bezier(.2,0,0,1); }
+.modal.anim { animation:sheet-in .25s cubic-bezier(.2,0,0,1); }
 .drawer h3 { font-size:15px; margin:0 0 10px; }
 .drawer .close { position:absolute; top:10px; right:12px; background:none; border:0; font-size:20px; cursor:pointer; }
 .drawer-sec { padding:0; }
 .btn.iconbtn { padding:8px; border-radius:50%; line-height:0; }
+.btn.plainbtn { background:none; border:0; color:var(--sub); padding:6px; border-radius:50%; line-height:0; }
+.btn.plainbtn:hover { color:var(--primary); background:var(--surface-container); }
 .mcell.off { opacity:.45; }
 .mcell .d { font-size:12px; font-weight:600; margin-bottom:4px; color:var(--sub); }
 .mcell.is-today .d { color:var(--accent); }
@@ -157,9 +159,15 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .row .lbl { font-size:12px; color:var(--sub); margin-right:2px; }
 .chips { display:flex; gap:6px; flex-wrap:wrap; }
 .toast { background:var(--primary); color:var(--on-primary); font-size:12px; padding:6px 14px; border-radius:999px; box-shadow:0 2px 6px rgba(0,0,0,.2); }
-.fab { position:fixed; right:16px; bottom:16px; width:56px; height:56px; border-radius:16px; border:0; background:var(--primary-container); color:var(--on-primary-container); font-size:28px; line-height:1; display:grid; place-items:center; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.22); z-index:30; transition:box-shadow .15s, transform .15s; }
+.fabwrap { position:fixed; right:16px; bottom:16px; z-index:30; display:flex; flex-direction:column; align-items:flex-end; gap:12px; }
+.fabopt { background:var(--surface-container); color:var(--text); border:0; border-radius:999px; padding:10px 18px; font-size:14px; font-weight:500; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.15); opacity:0; transform:translateY(12px) scale(.92); pointer-events:none; transition:opacity .18s ease, transform .18s cubic-bezier(.2,0,0,1); }
+.fabwrap.open .fabopt { opacity:1; transform:none; pointer-events:auto; }
+.fabwrap.open .fabopt:nth-child(2) { transition-delay:.04s; }
+.fab { width:56px; height:56px; border-radius:16px; border:0; background:var(--primary-container); color:var(--on-primary-container); font-size:28px; line-height:1; display:grid; place-items:center; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.22); transition:box-shadow .15s, transform .15s; }
 .fab:hover { box-shadow:0 6px 18px rgba(0,0,0,.28); }
 .fab:active { transform:scale(.95); }
+.fab .fplus { display:block; line-height:1; transition:transform .2s cubic-bezier(.2,0,0,1); }
+.fabwrap.open .fab .fplus { transform:rotate(45deg); }
 .info-l { font-size:11px; color:var(--faint); margin-top:8px; }
 .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:14px; }
 .detail-grid .k { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); }
@@ -446,6 +454,10 @@ function downloadICS(cal){
 /* ---------- render ---------- */
 function render(){
   var dark=S.theme==="dark";
+  /* modal-animatie: alleen bij vers openen, niet bij elke herberekening */
+  var MODALKEY = DIALOG?"d":DETAIL?"t":SUBDIALOG?"s":SYNCDIALOG?"y":CALDIALOG?"c":SHAREFOR?"h":null;
+  var MODAL_NEW = MODALKEY && MODALKEY!==PREV_MODALKEY;
+  PREV_MODALKEY=MODALKEY;
   document.documentElement.className = dark?"dark":"";
   var weekStart=addDays(startOfWeek(today), S.weekOffset*7);
   var weekDays=DAYS.map(function(_,i){ return addDays(weekStart,i); });
@@ -531,24 +543,26 @@ function render(){
     h+='</div></div>';
   }
   h+='<p class="info-l">Klik op een leeg slot om in te plannen · klik op een afspraak voor details · sleep om te verplaatsen</p></div>';
-  h+='<button class="fab" data-fab="1" title="Nieuwe afspraak" aria-label="Nieuwe afspraak">+</button>';
+  h+='<div class="fabwrap'+(FABOPEN?' open':'')+'">'
+   +'<button class="fabopt" data-fabopt="task">Taak</button>'
+   +'<button class="fabopt" data-fabopt="evt">Afspraak</button>'
+   +'<button class="fab" data-fab="1" title="Nieuw" aria-label="Nieuw"><span class="fplus">+</span></button></div>';
 
   /* sidebar */
-  h+=(DRAWER?'<div class="drawer-back'+(DRAWER_ANIM===true?' anim-in':DRAWER_ANIM==="out"?' anim-out':'')+'" data-drawer-close="1"></div><div class="drawer'+(DRAWER_ANIM===true?' anim-in':DRAWER_ANIM==="out"?' anim-out':'')+'"><button class="close" data-drawer-close="1" aria-label="Sluiten"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button><h3>Menu</h3>'
-   +'<div class="row" style="margin-bottom:12px"><button class="btn'+(S.view==="week"?" on":"")+'" data-view="week">Week</button>'
+  h+=(DRAWER?'<div class="drawer-back'+(DRAWER_ANIM===true?' anim-in':DRAWER_ANIM==="out"?' anim-out':'')+'" data-drawer-close="1"></div><div class="drawer'+(DRAWER_ANIM===true?' anim-in':DRAWER_ANIM==="out"?' anim-out':'')+'">'
+   +'<div class="row" style="margin-bottom:4px;flex-wrap:nowrap"><button class="btn'+(S.view==="week"?" on":"")+'" data-view="week">Week</button>'
    +'<button class="btn'+(S.view==="month"?" on":"")+'" data-view="month">Maand</button>'
    +'<button class="btn iconbtn" data-theme="1" title="Donkere/lichte modus">'+(dark
      ?'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'
      :'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>')+'</button>'
-   +'</div>':'<aside class="sidecol">')+'<div class="drawer-sec"><div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="section-title">Agenda\u2019s</span>'
-   +'<button class="btn" style="font-size:12px" data-newcal="1">+ nieuw</button></div>';
+   +'<span style="flex:1"></span>'
+   +'<button class="btn iconbtn" data-syncset="1" title="Synchronisatie-instellingen"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.82-.33 1.7 1.7 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.51 1.7 1.7 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .33-1.82 1.7 1.7 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.51-1 1.7 1.7 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.82.33h0a1.7 1.7 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.51h0a1.7 1.7 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.33 1.82v0a1.7 1.7 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z"/></svg></button>'
+   +'<button class="btn iconbtn" data-drawer-close="1" aria-label="Sluiten"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>':'<aside class="sidecol">')+'<div class="drawer-sec" style="'+(DRAWER?'border-top:1px solid var(--border-soft);padding-top:10px;':'')+'margin-top:4px">';
   S.cals.forEach(function(c){
     var col=CAL_COLORS[c.color%CAL_COLORS.length];
     h+='<div class="calli"><label><input type="checkbox" data-vis="'+c.id+'"'+(c.visible?" checked":"")+'/><span class="dot" style="background:'+col.hex+'"></span><span class="nm'+(c.visible?"":" faint")+'">'+esc(c.name)+'</span></label>';
     h+='<button class="act" data-share="'+c.id+'" title="Delen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></button>';
     h+='<button class="act" data-editcal="'+c.id+'" title="Naam en kleur aanpassen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>';
-    h+='<button class="act" data-share="'+c.id+'">delen</button>';
-    h+='<button class="act" data-editcal="'+c.id+'" title="Naam en kleur aanpassen">✎</button>';
     if(CONFIRM_CAL===c.id){
       h+='<span class="row"><button class="btn danger" style="font-size:11px;padding:2px 6px" data-delcalsy="'+c.id+'">zeker?</button>'
        +'<button class="act" data-delcalsn="1" title="Annuleren"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></span>';
@@ -557,6 +571,7 @@ function render(){
     }
     h+='</div>';
   });
+  h+='<div class="row" style="justify-content:flex-end"><button class="btn plainbtn" data-newcal="1" title="Nieuwe agenda"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div>';
   h+='</div><div class="drawer-sec" style="border-top:1px solid var(--border-soft);margin-top:16px;padding-top:12px;display:flex;flex-direction:column;gap:8px">';
    +'<button class="btn wide small" data-opensub="1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>iCal-abonnement toevoegen</button>'
    +'<select class="btn wide small" id="importsel"><option value="">ICS-bestand importeren in…</option>'
@@ -570,12 +585,11 @@ function render(){
     });
     h+='</div>';
   }
-  h+='</div></div>';
+  h+='</div>';
 
   /* Inbox-sectie verwijderd: nieuwe taken via raster of FAB */
-  /* sync — gewone sectie in het menu, geen kaart */
-  h+='<div class="drawer-sec" style="margin-top:16px"><div class="row" style="justify-content:space-between;margin-bottom:6px"><span class="section-title">Synchronisatie</span>'
-   +(SYNC?'<button class="btn iconbtn" data-syncset="1" title="Synchronisatie-instellingen"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.82-.33 1.7 1.7 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.51 1.7 1.7 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .33-1.82 1.7 1.7 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.51-1 1.7 1.7 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.82.33h0a1.7 1.7 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.51h0a1.7 1.7 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.33 1.82v0a1.7 1.7 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z"/></svg></button>':"")+'</div>';
+  /* sync — statussectie in het menu; instellingen via tandwiel bovenaan */
+  h+='<div class="drawer-sec" style="border-top:1px solid var(--border-soft);margin-top:16px;padding-top:12px"><span class="section-title">Synchronisatie</span>';
   if(SYNC){
     var st = SYNC_STATUS==="ok" ? '<span style="color:#10b981;display:inline-flex;align-items:center;gap:6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Gesynchroniseerd</span>'
       : SYNC_STATUS==="pushing" ? '<span class="faint">Opslaan naar server…</span>'
@@ -594,7 +608,7 @@ function render(){
   if(DETAIL){
     var e=DETAIL.e, dk=DETAIL.dk, c=calById(e.calId), d=fromKey(dk), done=(e.doneDates||[]).indexOf(dk)>=0;
     var col2=colOf(c);
-    h+='<div class="overlay" data-close="detail"><div class="modal">'
+    h+='<div class="overlay" data-close="detail"><div class="modal"'+(MODAL_NEW?" anim":"")+'>'
      +'<div class="row" style="align-items:flex-start"><span class="dot" style="background:'+col2.border+';margin-top:6px"></span>'
      +'<div style="flex:1"><h3 style="font-size:18px">'+esc(e.title)+'</h3><div class="sub small">'+esc(c.name)+'</div></div>'
      +'<button class="btn" data-close="detail">✕</button></div>'
@@ -620,7 +634,7 @@ function render(){
 
   /* add dialog */
   if(DIALOG){
-    h+='<div class="overlay" data-close="dialog"><div class="modal">'
+    h+='<div class="overlay" data-close="dialog"><div class="modal"'+(MODAL_NEW?" anim":"")+'>'
      +'<div class="modal-head"><div><div class="faint small">'+esc(nlDate(fromKey(DIALOG.date)))+' · '+fmtTime(DIALOG.start)+'</div><h3>Inplannen</h3></div>'
      +'<div class="row"><button class="btn" data-close="dialog">✕</button><button class="btn on" id="evtsave">Inplannen</button></div></div>'
      +'<input class="txt" id="evttitle" placeholder="Wat wil je doen?" value="'+esc(D_INPUT)+'"/>'
@@ -684,18 +698,20 @@ function render(){
 
   document.getElementById("app").innerHTML=h;
 
+  /* modal-animatie: alleen bij vers openen, niet bij elke herberekening */
+
   var titleEl=document.getElementById("evttitle");
-  if(titleEl){ titleEl.oninput=function(){ D_INPUT=this.value; }; titleEl.onkeydown=function(ev){ if(ev.key==="Enter") saveEvent(); }; setTimeout(function(){ try{ titleEl.focus(); }catch(e){} },50); }
+  if(titleEl){ titleEl.oninput=function(){ D_INPUT=this.value; }; titleEl.onkeydown=function(ev){ if(ev.key==="Enter") saveEvent(); }; if(MODAL_NEW) setTimeout(function(){ try{ titleEl.focus(); }catch(e){} },50); }
   var ti=document.getElementById("taskinput");
   if(ti){ ti.onkeydown=function(ev){ if(ev.key==="Enter"){ addTask(this.value); render(); } }; document.getElementById("taskadd").onclick=function(){ addTask(ti.value); render(); }; }
   var su=document.getElementById("suburl");
-  if(su){ su.oninput=function(){ SUB_URL=this.value.replace(/^webcal:\/\//i,"https://"); }; setTimeout(function(){ su.focus(); },50); }
+  if(su){ su.oninput=function(){ SUB_URL=this.value.replace(/^webcal:\/\//i,"https://"); }; if(MODAL_NEW) setTimeout(function(){ su.focus(); },50); }
   var syu=document.getElementById("synurl");
   if(syu){ syu.oninput=function(){ SYN_URL=this.value; }; var syk=document.getElementById("synkey");
     if(syk) syk.oninput=function(){ SYN_KEY=this.value; };
-    setTimeout(function(){ syu.focus(); },50); }
+    if(MODAL_NEW) setTimeout(function(){ syu.focus(); },50); }
   var nc=document.getElementById("newcal");
-  if(nc){ nc.onkeydown=function(ev){ if(ev.key==="Enter" && this.value.trim()) addCal(this.value); }; setTimeout(function(){ nc.focus(); },50); }
+  if(nc){ nc.onkeydown=function(ev){ if(ev.key==="Enter" && this.value.trim()) addCal(this.value); }; if(MODAL_NEW) setTimeout(function(){ nc.focus(); },50); }
   /* allday-rij net onder de sticky dagheaders laten plakken */
   var hd=document.querySelector("header"), gh=document.querySelector(".grid-head"), ar=document.querySelector(".alldayrow");
   if(hd && gh){ gh.style.top = Math.ceil(hd.getBoundingClientRect().height) + "px"; }
@@ -721,11 +737,15 @@ function addCal(name){
 document.addEventListener("click", function(ev){
   if(CLICK_SUPPRESS){ CLICK_SUPPRESS=false; return; }
   var t=ev.target, el;
-  if(el=t.closest("[data-fab]")) {
+  if(!t.closest(".fabwrap") && FABOPEN){ FABOPEN=false; } /* speed-dial sluiten bij klik erbuiten */
+  if(el=t.closest("[data-fab]")) { FABOPEN=!FABOPEN; render(); return; }
+  if(el=t.closest("[data-fabopt]")) {
+    FABOPEN=false;
     var now=new Date();
     var rounded=Math.ceil(((now.getHours()*60+now.getMinutes())/30))*30; // eerstvolgend half uur
     if(rounded>=END_HOUR*60) rounded=9*60;
-    openSlot(dateKey(now), rounded);
+    if(el.getAttribute("data-fabopt")==="task"){ openSlot(dateKey(now), rounded); D_ALLDAY=true; D_INPUT=""; render(); }
+    else openSlot(dateKey(now), rounded);
     return;
   }
   if(el=t.closest("[data-chk]")) { var e=findEvt(el.getAttribute("data-chk")); if(e){ ev.stopPropagation(); toggleDone(e, el.getAttribute("data-occ")); render(); } return; }
@@ -849,6 +869,8 @@ setInterval(function(){ S.now=new Date(); if(!DIALOG && !DETAIL) render(); }, 60
 /* swipe links/rechts = week wisselen (weekweergave) + tik-onderdrukking na scrollen */
 var SWIPE_X=null, SWIPE_Y=null, SWIPE_T=null, TOUCH_MOVED=false, CLICK_SUPPRESS=false;
 var DRAWER_ANIM=false; /* true=inkomen, "out"=weggaan, false=stil */
+var PREV_MODALKEY=null; /* voorkomt herhalende modal-animatie/focus */
+var FABOPEN=false;
 document.addEventListener("touchstart", function(ev){
   TOUCH_MOVED=false;
   if(ev.touches.length!==1 || S.view!=="week" || DIALOG || DETAIL || DRAWER || SUBDIALOG || CALDIALOG) { SWIPE_X=null; return; }
@@ -875,7 +897,14 @@ document.addEventListener("touchend", function(ev){
     if(dx<0) nav(1); else nav(-1);
   }
 }, {passive:true});
-document.addEventListener("keydown", function(ev){ if(ev.key==="Escape"){ DIALOG=null; DETAIL=null; SHAREFOR=null; SUBDIALOG=false; CALDIALOG=false; SYNCDIALOG=false; CONFIRM_DEL=false; CONFIRM_CAL=null; DRAWER=false; render(); } });
+document.addEventListener("focusin", function(ev){
+  var t=ev.target;
+  if(t && (t.classList.contains("txt") || t.tagName==="SELECT")){
+    var m=t.closest(".modal");
+    if(m){ setTimeout(function(){ m.scrollIntoView({block:"start", behavior:"smooth"}); }, 350); }
+  }
+});
+document.addEventListener("keydown", function(ev){ if(ev.key==="Escape"){ DIALOG=null; DETAIL=null; SHAREFOR=null; SUBDIALOG=false; CALDIALOG=false; SYNCDIALOG=false; CONFIRM_DEL=false; CONFIRM_CAL=null; DRAWER=false; FABOPEN=false; render(); } });
 render();
 scrollToNow(false); /* bij opstarten meteen naar de rode nu-lijn scrollen */
 if(SYNC){

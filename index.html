@@ -167,17 +167,17 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .fabopt { background:var(--surface-container); color:var(--text); border:0; border-radius:999px; padding:10px 18px; font-size:14px; font-weight:500; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.15); opacity:0; transform:scale(.3) translateY(24px); pointer-events:none; transform-origin:100% 100%; transition:transform .25s cubic-bezier(.2,0,0,1), opacity .15s ease; }
 .fabopt.small { padding:7px 14px; font-size:13px; }
 .fabwrap.open .fabopt, .pluswrap.open .fabopt { opacity:1; transform:none; pointer-events:auto; }
-.fabwrap.open .fabopt:nth-child(2) { transition-delay:.05s; }
-.fabwrap.open .fabopt:nth-child(3) { transition-delay:.1s; }
-.pluswrap.open .fabopt:nth-child(1) { transition-delay:.05s; }
-.pluswrap.open .fabopt:nth-child(2) { transition-delay:.1s; }
+.fabwrap.open .fabopt:nth-child(2) { transition-delay:.06s; }   /* bovenste optie: volgt daarna */
+.fabwrap.open .fabopt:nth-child(3) { transition-delay:0s; }     /* onderste optie: schuift eerst uit de knop */
+.pluswrap.open .fabopt:nth-child(1) { transition-delay:.06s; }
+.pluswrap.open .fabopt:nth-child(2) { transition-delay:0s; }
 .pluswrap { position:relative; display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
 .pluswrap .fabopt { opacity:0; transform:scale(.3) translateY(16px); pointer-events:none; transform-origin:100% 100%; transition:transform .25s cubic-bezier(.2,0,0,1), opacity .15s ease; }
-.fab { width:56px; height:56px; border-radius:16px; border:0; background:var(--primary-container); color:var(--on-primary-container); font-size:28px; line-height:1; display:grid; place-items:center; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.22); transition:box-shadow .15s, transform .15s, border-radius .25s cubic-bezier(.2,0,0,1); }
-.fabwrap.open .fab { border-radius:50%; }
+.fab { width:56px; height:56px; border-radius:16px; border:0; background:var(--primary-container); color:var(--on-primary-container); font-size:28px; line-height:1; display:grid; place-items:center; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.22); transition:box-shadow .15s, transform .15s, width .25s cubic-bezier(.2,0,0,1), height .25s cubic-bezier(.2,0,0,1), border-radius .25s cubic-bezier(.2,0,0,1); }
+.fabwrap.open .fab { width:44px; height:44px; border-radius:50%; }
 .fab:hover { box-shadow:0 6px 18px rgba(0,0,0,.28); }
 .fab:active { transform:scale(.95); }
-.fab .fplus { display:block; line-height:1; transition:transform .25s cubic-bezier(.2,0,0,1); }
+.fab .fplus { display:grid; place-items:center; line-height:0; transition:transform .3s cubic-bezier(.2,0,0,1); }
 .fabwrap.open .fab .fplus { transform:rotate(135deg); }
 .info-l { font-size:11px; color:var(--faint); margin-top:8px; }
 .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:14px; }
@@ -558,7 +558,7 @@ function render(){
    +'<div class="fabscrim" data-fabclose="1"></div>'
    +'<button class="fabopt" data-fabopt="task">Taak</button>'
    +'<button class="fabopt" data-fabopt="evt">Afspraak</button>'
-   +'<button class="fab" data-fab="1" title="Nieuw" aria-label="Nieuw"><span class="fplus">+</span></button></div>';
+   +'<button class="fab" data-fab="1" title="Nieuw" aria-label="Nieuw"><span class="fplus"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></button></div>';
 
   /* sidebar */
   h+=(DRAWER?'<div class="drawer-back'+(DRAWER_ANIM===true?' anim-in':DRAWER_ANIM==="out"?' anim-out':'')+'" data-drawer-close="1"></div><div class="drawer'+(DRAWER_ANIM===true?' anim-in':DRAWER_ANIM==="out"?' anim-out':'')+'">'
@@ -758,18 +758,22 @@ function addCal(name){
 document.addEventListener("click", function(ev){
   if(CLICK_SUPPRESS){ CLICK_SUPPRESS=false; return; }
   var t=ev.target, el;
-  if(!t.closest(".fabwrap") && FABOPEN){ FABOPEN=false; } /* speed-dial sluiten bij klik erbuiten */
-  if(!t.closest(".pluswrap") && PLUSOPEN){ PLUSOPEN=false; }
-  if(el=t.closest("[data-fabclose]")) { FABOPEN=false; render(); return; }
-  if(el=t.closest("[data-plus]")) { PLUSOPEN=!PLUSOPEN; render(); return; }
+  /* speed-dials: klasse togglen op bestaand DOM — géén render, anders springen de CSS-overgangen */
+  var fwEl=document.querySelector(".fabwrap"), pwEl=document.querySelector(".pluswrap");
+  if(!t.closest(".fabwrap") && FABOPEN){ FABOPEN=false; if(fwEl) fwEl.classList.remove("open"); } /* speed-dial sluiten bij klik erbuiten */
+  if(!t.closest(".pluswrap") && PLUSOPEN){ PLUSOPEN=false; if(pwEl) pwEl.classList.remove("open"); }
+  if(el=t.closest("[data-fabclose]")) { FABOPEN=false; if(fwEl) fwEl.classList.remove("open"); return; }
+  if(el=t.closest("[data-plus]")) { PLUSOPEN=!PLUSOPEN; if(pwEl) pwEl.classList.toggle("open", PLUSOPEN); return; }
   if(el=t.closest("[data-plusopt]")) {
     var po=el.getAttribute("data-plusopt");
-    PLUSOPEN=false;
-    if(po==="cal"){ EDITCAL=null; CALDIALOG=true; render(); }
-    else { SUBDIALOG=true; render(); }
+    PLUSOPEN=false; if(pwEl) pwEl.classList.remove("open");
+    setTimeout(function(){
+      if(po==="cal"){ EDITCAL=null; CALDIALOG=true; render(); }
+      else { SUBDIALOG=true; render(); }
+    }, 230);
     return;
   }
-  if(el=t.closest("[data-fab]")) { FABOPEN=!FABOPEN; render(); return; }
+  if(el=t.closest("[data-fab]")) { FABOPEN=!FABOPEN; if(fwEl) fwEl.classList.toggle("open", FABOPEN); return; }
   if(el=t.closest("[data-fabopt]")) {
     FABOPEN=false;
     var now=new Date();

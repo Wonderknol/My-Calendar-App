@@ -110,10 +110,16 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .todaybadge { background:var(--surface-container); border:0; border-radius:999px; width:32px; height:32px; display:grid; place-items:center; cursor:pointer; font-size:13px; font-weight:500; color:var(--sub); flex:none; }
 .todaybadge:hover { background:var(--btn-hover); }
 @media(max-width:999px){ .layout { grid-template-columns:1fr; } }
-.drawer { position:fixed; top:0; right:0; bottom:0; width:300px; max-width:85vw; background:var(--panel); border:0; z-index:40; box-shadow:0 8px 40px rgba(0,0,0,.25); padding:16px; overflow-y:auto; animation:drawer-in .3s cubic-bezier(.2,0,0,1); }
+.drawer { position:fixed; top:0; right:0; bottom:0; width:300px; max-width:85vw; background:var(--panel); border:0; z-index:40; box-shadow:0 8px 40px rgba(0,0,0,.25); padding:16px; overflow-y:auto; }
+.drawer.anim-in { animation:drawer-in .3s cubic-bezier(.2,0,0,1); }
+.drawer.anim-out { animation:drawer-out .25s cubic-bezier(.3,0,.8,.15) forwards; }
 @keyframes drawer-in { from { transform:translateX(100%); } }
-.drawer-back { position:fixed; inset:0; background:rgba(15,23,42,.4); z-index:39; animation:fade-in .25s ease; }
+@keyframes drawer-out { to { transform:translateX(100%); } }
+.drawer-back { position:fixed; inset:0; background:rgba(15,23,42,.4); z-index:39; }
+.drawer-back.anim-in { animation:fade-in .25s ease; }
+.drawer-back.anim-out { animation:fade-out .25s ease forwards; }
 @keyframes fade-in { from { opacity:0; } }
+@keyframes fade-out { to { opacity:0; } }
 @keyframes sheet-in { from { transform:translateY(24px); opacity:0; } }
 .modal { animation:sheet-in .25s cubic-bezier(.2,0,0,1); }
 .drawer h3 { font-size:15px; margin:0 0 10px; }
@@ -504,7 +510,7 @@ function render(){
   h+='<button class="fab" data-fab="1" title="Nieuwe afspraak" aria-label="Nieuwe afspraak">+</button>';
 
   /* sidebar */
-  h+=(DRAWER?'<div class="drawer-back" data-drawer-close="1"></div><div class="drawer"><button class="close" data-drawer-close="1">✕</button><h3>Menu</h3>'
+  h+=(DRAWER?'<div class="drawer-back'+(DRAWER_ANIM===true?' anim-in':DRAWER_ANIM==="out"?' anim-out':'')+'" data-drawer-close="1"></div><div class="drawer'+(DRAWER_ANIM===true?' anim-in':DRAWER_ANIM==="out"?' anim-out':'')+'"><button class="close" data-drawer-close="1">✕</button><h3>Menu</h3>'
    +'<div class="row" style="margin-bottom:12px"><button class="btn'+(S.view==="week"?" on":"")+'" data-view="week">Week</button>'
    +'<button class="btn'+(S.view==="month"?" on":"")+'" data-view="month">Maand</button>'
    +'<button class="btn iconbtn" data-theme="1" title="Donkere/lichte modus">'+(dark
@@ -723,8 +729,14 @@ document.addEventListener("click", function(ev){
   if(el=t.closest("[data-opensub]")) { SUB_CAL=S.cals[0].id; SUB_URL=""; SUBDIALOG=true; render(); return; }
   if(el=t.closest("[data-newcal]")) { CALDIALOG=true; render(); return; }
   if(t.id==="evtsave") { saveEvent(); return; }
-  if(el=t.closest("[data-drawer]")) { DRAWER=true; render(); return; }
-  if(el=t.closest("[data-drawer-close]")) { DRAWER=false; render(); return; }
+  if(el=t.closest("[data-drawer]")) { DRAWER=true; DRAWER_ANIM=true; render(); requestAnimationFrame(function(){ DRAWER_ANIM=false; }); return; }
+  if(el=t.closest("[data-drawer-close]")) {
+    if(DRAWER_ANIM===false){
+      DRAWER_ANIM="out"; render();
+      setTimeout(function(){ DRAWER=false; DRAWER_ANIM=false; render(); }, 250);
+    }
+    return;
+  }
   if(t.id==="synsave") { syncConnect(); return; }
   if(el=t.closest("[data-syncset]")) { SYN_URL = SYNC?SYNC.url:""; SYN_KEY = SYNC?SYNC.key:""; SYNCDIALOG=true; render(); return; }
   if(el=t.closest("[data-syncoff]")) { syncDisconnect(); return; }
@@ -796,6 +808,7 @@ document.addEventListener("drop", function(ev){
 setInterval(function(){ S.now=new Date(); if(!DIALOG && !DETAIL) render(); }, 60000);
 /* swipe links/rechts = week wisselen (weekweergave) + tik-onderdrukking na scrollen */
 var SWIPE_X=null, SWIPE_Y=null, SWIPE_T=null, TOUCH_MOVED=false, CLICK_SUPPRESS=false;
+var DRAWER_ANIM=false; /* true=inkomen, "out"=weggaan, false=stil */
 document.addEventListener("touchstart", function(ev){
   TOUCH_MOVED=false;
   if(ev.touches.length!==1 || S.view!=="week" || DIALOG || DETAIL || DRAWER || SUBDIALOG || CALDIALOG) { SWIPE_X=null; return; }

@@ -134,6 +134,8 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .calli .dot { width:10px; height:10px; border-radius:50%; flex:none; }
 .calli label { display:flex; align-items:center; gap:8px; flex:1; cursor:pointer; }
 .calli input { accent-color:var(--accent); }
+.calswatch { width:32px; height:32px; border-radius:50%; border:0; cursor:pointer; position:relative; }
+.calswatch.sel { outline:3px solid var(--primary); outline-offset:2px; }
 .calli .act { visibility:hidden; font-size:12px; cursor:pointer; background:none; border:0; color:var(--faint); }
 .calli:hover .act { visibility:visible; }
 .calli .act:hover { color:var(--accent); }
@@ -305,7 +307,7 @@ var S = {
   tasks: load("ma-tasks",[]),
   now: new Date()
 };
-var DIALOG=null, DETAIL=null, SHAREFOR=null, SUBDIALOG=false, CALDIALOG=false,
+var DIALOG=null, DETAIL=null, SHAREFOR=null, SUBDIALOG=false, CALDIALOG=false, EDITCAL=null,
     CONFIRM_DEL=false, CONFIRM_CAL=null, INFO=null, DRAWER=false,
     D_INPUT="", D_DUR=60, D_CAL="", D_RECUR=0, D_ALLDAY=false, SUB_URL="", SUB_CAL="", NEWCAL="",
     DRAG_ID=null, DRAG_TASK=false;
@@ -534,6 +536,7 @@ function render(){
     var col=CAL_COLORS[c.color%CAL_COLORS.length];
     h+='<div class="calli"><label><input type="checkbox" data-vis="'+c.id+'"'+(c.visible?" checked":"")+'/><span class="dot" style="background:'+col.hex+'"></span><span'+(c.visible?"":' class="faint"')+'>'+esc(c.name)+'</span></label>';
     h+='<button class="act" data-share="'+c.id+'">delen</button>';
+    h+='<button class="act" data-editcal="'+c.id+'" title="Naam en kleur aanpassen">✎</button>';
     if(CONFIRM_CAL===c.id){
       h+='<span class="row"><button class="btn danger" style="font-size:11px;padding:2px 6px" data-delcalsy="'+c.id+'">zeker?</button>'
        +'<button class="act" style="visibility:visible" data-delcalsn="1">✕</button></span>';
@@ -645,10 +648,16 @@ function render(){
 
   /* new calendar dialog */
   if(CALDIALOG){
-    h+='<div class="overlay" data-close="caldialog"><div class="modal"><h3>Nieuwe agenda</h3>'
-     +'<input class="txt" id="newcal" placeholder="Naam van de agenda…"/>'
+    var ec = EDITCAL?calById(EDITCAL):null;
+    h+='<div class="overlay" data-close="caldialog"><div class="modal"><h3>'+(ec?'Agenda aanpassen':'Nieuwe agenda')+'</h3>'
+     +'<input class="txt" id="newcal" placeholder="Naam van de agenda…" value="'+(ec?esc(ec.name):"")+'"/>'
+     +'<div class="row" style="margin:10px 0 4px;gap:6px;flex-wrap:wrap" id="calcolorrow">';
+    CAL_COLORS.forEach(function(cc,i){
+      h+='<button class="calswatch'+(((ec?ec.color:S.cals.length)%CAL_COLORS.length===i)?' sel':'')+'" data-color="'+i+'" style="background:'+cc.hex+'" title="Kleur '+(i+1)+'"></button>';
+    });
+    h+='</div>'
      +'<div class="row" style="justify-content:flex-end"><button class="btn" data-close="caldialog">Annuleren</button>'
-     +'<button class="btn on" id="newcalsave">Aanmaken</button></div></div></div>';
+     +'<button class="btn on" id="newcalsave">'+(ec?'Opslaan':'Aanmaken')+'</button></div></div></div>';
   }
 
   /* sync dialog */
@@ -688,7 +697,13 @@ function render(){
   }
 }
 function addCal(name){
-  S.cals.push({id:newId(),name:name.trim(),color:S.cals.length%CAL_COLORS.length,visible:true});
+  if(EDITCAL){
+    var c=calById(EDITCAL);
+    if(c){ c.name=name.trim(); saveAll(); }
+    EDITCAL=null;
+  } else {
+    S.cals.push({id:newId(),name:name.trim(),color:S.cals.length%CAL_COLORS.length,visible:true});
+  }
   CALDIALOG=false; saveAll(); render();
 }
 
@@ -731,7 +746,7 @@ document.addEventListener("click", function(ev){
   if(t.getAttribute && t.getAttribute("data-close")) {
     var k=t.getAttribute("data-close");
     if(k==="detail") DETAIL=null; if(k==="dialog") DIALOG=null; if(k==="sub") SUBDIALOG=false;
-    if(k==="share") SHAREFOR=null; if(k==="caldialog") CALDIALOG=false;
+    if(k==="share") SHAREFOR=null; if(k==="caldialog"){ CALDIALOG=false; EDITCAL=null; }
     if(k==="sync") SYNCDIALOG=false;
     render(); return;
   }
@@ -740,7 +755,7 @@ document.addEventListener("click", function(ev){
   if(el=t.closest("[data-syncall]")) { syncAll(); return; }
   if(el=t.closest("[data-theme]")) { toggleTheme(); return; }
   if(el=t.closest("[data-opensub]")) { SUB_CAL=S.cals[0].id; SUB_URL=""; SUBDIALOG=true; render(); return; }
-  if(el=t.closest("[data-newcal]")) { CALDIALOG=true; render(); return; }
+  if(el=t.closest("[data-newcal]")) { EDITCAL=null; CALDIALOG=true; render(); return; }
   if(t.id==="evtsave") { saveEvent(); return; }
   if(el=t.closest("[data-drawer]")) { DRAWER=true; DRAWER_ANIM=true; render(); requestAnimationFrame(function(){ DRAWER_ANIM=false; }); return; }
   if(el=t.closest("[data-drawer-close]")) {
@@ -755,6 +770,8 @@ document.addEventListener("click", function(ev){
   if(el=t.closest("[data-syncoff]")) { syncDisconnect(); return; }
   if(el=t.closest("[data-syncnow]")) { syncPull(false); return; }
   if(t.id==="newcalsave") { var inp=document.getElementById("newcal"); if(inp&&inp.value.trim()) addCal(inp.value); return; }
+  if(el=t.closest("[data-editcal]")) { EDITCAL=el.getAttribute("data-editcal"); CALDIALOG=true; render(); return; }
+  if(el=t.closest("[data-color]")) { if(EDITCAL){ var cc=calById(EDITCAL); if(cc){ cc.color=+el.getAttribute("data-color"); saveAll(); render(); } } return; }
   if(t.id==="shardl") { downloadICS(SHAREFOR); return; }
   if(t.id==="subadd") {
     if(!SUB_URL.trim()) return;

@@ -116,7 +116,9 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .todaybadge { background:var(--surface-container); border:0; border-radius:999px; width:32px; height:32px; display:grid; place-items:center; cursor:pointer; font-size:13px; font-weight:500; color:var(--sub); flex:none; }
 .todaybadge:hover { background:var(--btn-hover); }
 @media(max-width:999px){ .layout { grid-template-columns:1fr; } }
-.drawer { position:fixed; top:0; right:0; height:100dvh; width:300px; max-width:85vw; background:var(--panel); border:0; z-index:40; box-shadow:0 8px 40px rgba(0,0,0,.25); padding:16px; overflow-y:auto; }
+.drawer { position:fixed; top:0; right:0; height:100dvh; width:300px; max-width:85vw; background:var(--panel); border:0; z-index:40; box-shadow:0 8px 40px rgba(0,0,0,.25); padding:16px; overflow-y:auto; overflow-x:hidden; }
+.drawer .btn { padding:8px 12px; }
+.drawer .btn.iconbtn { padding:7px; width:36px; height:36px; }
 .drawer.anim-in { animation:drawer-in .3s cubic-bezier(.2,0,0,1); }
 .drawer.anim-out { animation:drawer-out .25s cubic-bezier(.3,0,.8,.15) forwards; }
 @keyframes drawer-in { from { transform:translateX(100%); } }
@@ -160,14 +162,23 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .chips { display:flex; gap:6px; flex-wrap:wrap; }
 .toast { background:var(--primary); color:var(--on-primary); font-size:12px; padding:6px 14px; border-radius:999px; box-shadow:0 2px 6px rgba(0,0,0,.2); }
 .fabwrap { position:fixed; right:16px; bottom:16px; z-index:30; display:flex; flex-direction:column; align-items:flex-end; gap:12px; }
-.fabopt { background:var(--surface-container); color:var(--text); border:0; border-radius:999px; padding:10px 18px; font-size:14px; font-weight:500; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.15); opacity:0; transform:translateY(12px) scale(.92); pointer-events:none; transition:opacity .18s ease, transform .18s cubic-bezier(.2,0,0,1); }
-.fabwrap.open .fabopt { opacity:1; transform:none; pointer-events:auto; }
-.fabwrap.open .fabopt:nth-child(2) { transition-delay:.04s; }
-.fab { width:56px; height:56px; border-radius:16px; border:0; background:var(--primary-container); color:var(--on-primary-container); font-size:28px; line-height:1; display:grid; place-items:center; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.22); transition:box-shadow .15s, transform .15s; }
+.fabscrim { position:fixed; inset:0; background:rgba(15,10,25,.35); opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:-1; }
+.fabwrap.open .fabscrim { opacity:1; pointer-events:auto; }
+.fabopt { background:var(--surface-container); color:var(--text); border:0; border-radius:999px; padding:10px 18px; font-size:14px; font-weight:500; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.15); opacity:0; transform:scale(.3) translateY(24px); pointer-events:none; transform-origin:100% 100%; transition:transform .25s cubic-bezier(.2,0,0,1), opacity .15s ease; }
+.fabopt.small { padding:7px 14px; font-size:13px; }
+.fabwrap.open .fabopt, .pluswrap.open .fabopt { opacity:1; transform:none; pointer-events:auto; }
+.fabwrap.open .fabopt:nth-child(2) { transition-delay:.05s; }
+.fabwrap.open .fabopt:nth-child(3) { transition-delay:.1s; }
+.pluswrap.open .fabopt:nth-child(1) { transition-delay:.05s; }
+.pluswrap.open .fabopt:nth-child(2) { transition-delay:.1s; }
+.pluswrap { position:relative; display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+.pluswrap .fabopt { opacity:0; transform:scale(.3) translateY(16px); pointer-events:none; transform-origin:100% 100%; transition:transform .25s cubic-bezier(.2,0,0,1), opacity .15s ease; }
+.fab { width:56px; height:56px; border-radius:16px; border:0; background:var(--primary-container); color:var(--on-primary-container); font-size:28px; line-height:1; display:grid; place-items:center; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.22); transition:box-shadow .15s, transform .15s, border-radius .25s cubic-bezier(.2,0,0,1); }
+.fabwrap.open .fab { border-radius:50%; }
 .fab:hover { box-shadow:0 6px 18px rgba(0,0,0,.28); }
 .fab:active { transform:scale(.95); }
-.fab .fplus { display:block; line-height:1; transition:transform .2s cubic-bezier(.2,0,0,1); }
-.fabwrap.open .fab .fplus { transform:rotate(45deg); }
+.fab .fplus { display:block; line-height:1; transition:transform .25s cubic-bezier(.2,0,0,1); }
+.fabwrap.open .fab .fplus { transform:rotate(135deg); }
 .info-l { font-size:11px; color:var(--faint); margin-top:8px; }
 .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:14px; }
 .detail-grid .k { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); }
@@ -544,6 +555,7 @@ function render(){
   }
   h+='<p class="info-l">Klik op een leeg slot om in te plannen · klik op een afspraak voor details · sleep om te verplaatsen</p></div>';
   h+='<div class="fabwrap'+(FABOPEN?' open':'')+'">'
+   +'<div class="fabscrim" data-fabclose="1"></div>'
    +'<button class="fabopt" data-fabopt="task">Taak</button>'
    +'<button class="fabopt" data-fabopt="evt">Afspraak</button>'
    +'<button class="fab" data-fab="1" title="Nieuw" aria-label="Nieuw"><span class="fplus">+</span></button></div>';
@@ -561,17 +573,13 @@ function render(){
   S.cals.forEach(function(c){
     var col=CAL_COLORS[c.color%CAL_COLORS.length];
     h+='<div class="calli"><label><input type="checkbox" data-vis="'+c.id+'"'+(c.visible?" checked":"")+'/><span class="dot" style="background:'+col.hex+'"></span><span class="nm'+(c.visible?"":" faint")+'">'+esc(c.name)+'</span></label>';
-    h+='<button class="act" data-share="'+c.id+'" title="Delen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></button>';
     h+='<button class="act" data-editcal="'+c.id+'" title="Naam en kleur aanpassen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>';
-    if(CONFIRM_CAL===c.id){
-      h+='<span class="row"><button class="btn danger" style="font-size:11px;padding:2px 6px" data-delcalsy="'+c.id+'">zeker?</button>'
-       +'<button class="act" data-delcalsn="1" title="Annuleren"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></span>';
-    } else if(S.cals.length>1){
-      h+='<button class="act" title="Agenda verwijderen" data-delcal="'+c.id+'"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>';
-    }
     h+='</div>';
   });
-  h+='<div class="row" style="justify-content:flex-end"><button class="btn plainbtn" data-newcal="1" title="Nieuwe agenda"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div>';
+  h+='<div class="row" style="justify-content:flex-end"><div class="pluswrap'+(PLUSOPEN?' open':'')+'">'
+   +'<button class="fabopt small" data-plusopt="sub">iCal-abonnement</button>'
+   +'<button class="fabopt small" data-plusopt="cal">Agenda</button>'
+   +'<button class="btn plainbtn" data-plus="1" title="Toevoegen"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div></div>';
   h+='</div><div class="drawer-sec" style="border-top:1px solid var(--border-soft);margin-top:16px;padding-top:12px;display:flex;flex-direction:column;gap:8px">';
    +'<button class="btn wide small" data-opensub="1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>iCal-abonnement toevoegen</button>'
    +'<select class="btn wide small" id="importsel"><option value="">ICS-bestand importeren in…</option>'
@@ -680,8 +688,21 @@ function render(){
       h+='<button class="calswatch'+(((ec?ec.color:S.cals.length)%CAL_COLORS.length===i)?' sel':'')+'" data-color="'+i+'" style="background:'+cc.hex+'" title="Kleur '+(i+1)+'"></button>';
     });
     h+='</div>'
-     +'<div class="row" style="justify-content:flex-end"><button class="btn" data-close="caldialog">Annuleren</button>'
-     +'<button class="btn on" id="newcalsave">'+(ec?'Opslaan':'Aanmaken')+'</button></div></div></div>';
+     +'<div class="row" style="justify-content:flex-end;flex-wrap:wrap">'
+     +'<button class="btn" data-close="caldialog">Annuleren</button>'
+     +'<button class="btn on" id="newcalsave">'+(ec?'Opslaan':'Aanmaken')+'</button></div>';
+    if(ec){
+      h+='<div class="row" style="border-top:1px solid var(--border-soft);padding-top:12px;margin-top:4px;justify-content:space-between;flex-wrap:wrap">'
+       +'<button class="btn" data-share="'+ec.id+'">Delen…</button>';
+      if(CONFIRM_CAL===ec.id){
+        h+='<button class="btn danger" data-delcalsy="'+ec.id+'">Zeker weten?</button>'
+         +'<button class="btn" data-delcalsn="1">Nee</button>';
+      } else if(S.cals.length>1){
+        h+='<button class="btn" data-delcal="'+ec.id+'">Verwijderen…</button>';
+      }
+      h+='</div>';
+    }
+    h+='</div></div>';
   }
 
   /* sync dialog */
@@ -738,6 +759,16 @@ document.addEventListener("click", function(ev){
   if(CLICK_SUPPRESS){ CLICK_SUPPRESS=false; return; }
   var t=ev.target, el;
   if(!t.closest(".fabwrap") && FABOPEN){ FABOPEN=false; } /* speed-dial sluiten bij klik erbuiten */
+  if(!t.closest(".pluswrap") && PLUSOPEN){ PLUSOPEN=false; }
+  if(el=t.closest("[data-fabclose]")) { FABOPEN=false; render(); return; }
+  if(el=t.closest("[data-plus]")) { PLUSOPEN=!PLUSOPEN; render(); return; }
+  if(el=t.closest("[data-plusopt]")) {
+    var po=el.getAttribute("data-plusopt");
+    PLUSOPEN=false;
+    if(po==="cal"){ EDITCAL=null; CALDIALOG=true; render(); }
+    else { SUBDIALOG=true; render(); }
+    return;
+  }
   if(el=t.closest("[data-fab]")) { FABOPEN=!FABOPEN; render(); return; }
   if(el=t.closest("[data-fabopt]")) {
     FABOPEN=false;
@@ -753,7 +784,7 @@ document.addEventListener("click", function(ev){
   if(el=t.closest(".slot")) { var col=el.closest("[data-day]"); if(col){ openSlot(col.getAttribute("data-day"), +el.getAttribute("data-start")); } return; }
   if(el=t.closest("[data-mday]") && !t.closest("[data-evt]")) { openSlot(el.getAttribute("data-mday"), 9*60); return; }
   if(el=t.closest("[data-vis]")) { calById(el.getAttribute("data-vis")).visible=el.checked; saveAll(); render(); return; }
-  if(el=t.closest("[data-share]")) { SHAREFOR=calById(el.getAttribute("data-share")); render(); return; }
+  if(el=t.closest("[data-share]")) { SHAREFOR=calById(el.getAttribute("data-share")); CALDIALOG=false; EDITCAL=null; render(); return; }
   if(el=t.closest("[data-delcal]")) { CONFIRM_CAL=el.getAttribute("data-delcal"); render(); return; }
   if(el=t.closest("[data-delcalsn]")) { CONFIRM_CAL=null; render(); return; }
   if(el=t.closest("[data-delcalsy]")) {
@@ -761,7 +792,7 @@ document.addEventListener("click", function(ev){
     S.cals=S.cals.filter(function(c){return c.id!==cid;});
     S.events=S.events.filter(function(e){return e.calId!==cid;});
     S.subs=S.subs.filter(function(s){return s.calId!==cid;});
-    CONFIRM_CAL=null; saveAll(); render(); return;
+    CONFIRM_CAL=null; CALDIALOG=false; EDITCAL=null; saveAll(); render(); return;
   }
   if(el=t.closest("[data-sync]")) { var id=el.getAttribute("data-sync"); var s=S.subs.filter(function(x){return x.id===id;})[0];
     if(s){ setInfo("Verversen…"); syncSub(s).then(function(u){ saveAll(); setInfo(u.error?"Mislukt: "+u.error:"Ververst"); }); } return; }
@@ -871,6 +902,7 @@ var SWIPE_X=null, SWIPE_Y=null, SWIPE_T=null, TOUCH_MOVED=false, CLICK_SUPPRESS=
 var DRAWER_ANIM=false; /* true=inkomen, "out"=weggaan, false=stil */
 var PREV_MODALKEY=null; /* voorkomt herhalende modal-animatie/focus */
 var FABOPEN=false;
+var PLUSOPEN=false;
 document.addEventListener("touchstart", function(ev){
   TOUCH_MOVED=false;
   if(ev.touches.length!==1 || S.view!=="week" || DIALOG || DETAIL || DRAWER || SUBDIALOG || CALDIALOG) { SWIPE_X=null; return; }
@@ -904,7 +936,7 @@ document.addEventListener("focusin", function(ev){
     if(m){ setTimeout(function(){ m.scrollIntoView({block:"start", behavior:"smooth"}); }, 350); }
   }
 });
-document.addEventListener("keydown", function(ev){ if(ev.key==="Escape"){ DIALOG=null; DETAIL=null; SHAREFOR=null; SUBDIALOG=false; CALDIALOG=false; SYNCDIALOG=false; CONFIRM_DEL=false; CONFIRM_CAL=null; DRAWER=false; FABOPEN=false; render(); } });
+document.addEventListener("keydown", function(ev){ if(ev.key==="Escape"){ DIALOG=null; DETAIL=null; SHAREFOR=null; SUBDIALOG=false; CALDIALOG=false; SYNCDIALOG=false; CONFIRM_DEL=false; CONFIRM_CAL=null; DRAWER=false; FABOPEN=false; PLUSOPEN=false; render(); } });
 render();
 scrollToNow(false); /* bij opstarten meteen naar de rode nu-lijn scrollen */
 if(SYNC){

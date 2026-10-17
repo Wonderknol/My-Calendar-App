@@ -51,7 +51,7 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .alldayrow .adc { min-height:22px; padding:2px 4px; display:flex; flex-direction:column; gap:2px; min-width:0; }
 .alldayrow .adc .allday { width:100%; min-width:0; }
 .alldayrow .adc-label { font-size:9px; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); text-align:center; line-height:20px; }
-.allday { padding:2px 6px; margin-bottom:2px; border-radius:6px; font-size:10px; font-weight:600; cursor:pointer; line-height:16px; white-space:nowrap; overflow:hidden; color:#fff; }
+.allday { padding:2px 6px; margin-bottom:2px; border-radius:6px; font-size:10px; font-weight:600; cursor:pointer; line-height:16px; white-space:nowrap; overflow:hidden; color:var(--text); }
 .pad { padding:16px; }
 .sub { color:var(--sub); } .faint { color:var(--faint); }
 .small { font-size:12px; }
@@ -167,12 +167,16 @@ var DAYS = ["Ma","Di","Wo","Do","Vr","Za","Zo"];
 var DAYS_FULL = ["maandag","dinsdag","woensdag","donderdag","vrijdag","zaterdag","zondag"];
 var START_HOUR = 0, END_HOUR = 24, SLOT_MIN = 30, PX_PER_HOUR = 56;
 var CAL_COLORS = [
-  { hex:"#6366f1", light:"#e0e7ff", dark:"#312e81" },
-  { hex:"#10b981", light:"#d1fae5", dark:"#064e3b" },
-  { hex:"#f43f5e", light:"#ffe4e6", dark:"#881337" },
-  { hex:"#f59e0b", light:"#fef3c7", dark:"#78350f" },
-  { hex:"#06b6d4", light:"#cffafe", dark:"#164e63" },
-  { hex:"#8b5cf6", light:"#ede9fe", dark:"#4c1d95" }
+  { hex:"#6FA8DC", light:"#E3EFFA", dark:"#1E4E79" },   // hemelsblauw
+  { hex:"#B4A7D6", light:"#EFEBF7", dark:"#453A75" },   // lavendel
+  { hex:"#76C7C0", light:"#E4F4F2", dark:"#1E5A54" },   // teal
+  { hex:"#93C47D", light:"#E9F4E3", dark:"#2E5E1E" },   // grasgroen
+  { hex:"#FFD966", light:"#FFF3D6", dark:"#7A5C00" },   // zonnig geel
+  { hex:"#F6B26B", light:"#FDEEDD", dark:"#8A4E14" },   // perzisch oranje
+  { hex:"#FF7F50", light:"#FFE9E1", dark:"#943A1B" },    // koraal
+  { hex:"#E06666", light:"#FBE4E4", dark:"#7A2424" },   // zacht rood
+  { hex:"#9FC5E8", light:"#E8F2FB", dark:"#1F4E78" },   // ijsblauw
+  { hex:"#B6D7A8", light:"#EDF6E7", dark:"#3A5A2A" }    // licht groen
 ];
 function pad(n){ return String(n).padStart(2,"0"); }
 function dateKey(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
@@ -507,7 +511,7 @@ function render(){
        +'<div class="d">'+(isT?'<span class="todaycircle" style="font-size:11px;min-width:18px;height:18px;">'+d2.getDate()+'</span>':d2.getDate())+'</div>';
       list.slice(0,4).forEach(function(e){
         var col=colOf(calById(e.calId));
-        h+='<div class="mchip" style="background:'+col.border+';color:#fff" data-evt="'+e.id+'" data-occ="'+dk2+'">'+(e.allDay?esc(e.title):fmtTime(e.start)+' '+esc(e.title))+'</div>';
+        h+='<div class="mchip" style="background:'+col.border+';color:var(--text)" data-evt="'+e.id+'" data-occ="'+dk2+'">'+(e.allDay?esc(e.title):fmtTime(e.start)+' '+esc(e.title))+'</div>';
       });
       if(list.length>4) h+='<div class="faint" style="font-size:10px;padding-left:4px">+'+(list.length-4)+' meer</div>';
       h+='</div>';

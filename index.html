@@ -91,6 +91,7 @@ button, select, input, textarea { font:inherit; color:inherit; }
   .hour-label { font-size:12px; }
   .dh .dn { font-size:15px; }
   .chevbtn { width:32px; height:32px; }
+  .picker { left:8px; }
   .monthcard { height:calc(100dvh - 44px); display:flex; flex-direction:column; }
   .monthcard .mgrid:first-child { flex:none; }
   .monthcard .mgrid:last-child { flex:1; min-height:0; grid-auto-rows:1fr; }
@@ -131,6 +132,21 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .chevbtn { display:grid; place-items:center; width:36px; height:36px; background:none; border:0; cursor:pointer; border-radius:50%; padding:0; color:var(--header-ink); }
 .chevbtn:hover { background:var(--surface-container); color:var(--primary); }
 .chevbtn svg { display:block; }
+/* titelknop + maandkiezer (dropdown onder de titel) */
+.titlebtn { background:none; border:0; padding:2px 6px; margin:0; border-radius:10px; cursor:pointer; display:flex; align-items:center; gap:2px; }
+.titlebtn:hover { background:var(--surface-container); }
+.titlebtn .tchev { opacity:.7; flex:none; }
+.pscrim { position:fixed; inset:0; z-index:24; }
+.picker { position:absolute; top:100%; left:16px; margin-top:6px; z-index:25; background:var(--panel); border-radius:16px; box-shadow:0 10px 36px rgba(0,0,0,.24); padding:12px; width:308px; max-width:calc(100vw - 24px); }
+.picker.anim { animation:pop-in .18s cubic-bezier(.2,0,0,1); }
+@keyframes pop-in { from { opacity:0; transform:translateY(-6px) scale(.97); } }
+.phead { display:flex; align-items:center; gap:4px; margin-bottom:6px; }
+.pgrid { display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:40px; gap:2px; }
+.ph { text-align:center; font-size:10px; text-transform:uppercase; color:var(--faint); padding:2px 0; }
+.pday { background:none; border:0; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:12px; color:var(--text); cursor:pointer; padding:0; }
+.pday:hover { background:var(--surface-container); }
+.pday .ptoday { display:grid; place-items:center; width:26px; height:26px; border-radius:50%; background:var(--primary); color:var(--on-primary); font-weight:600; }
+.pdot { width:4px; height:4px; border-radius:50%; background:var(--sub); }
 @media(max-width:999px){ .layout { grid-template-columns:1fr; } }
 .drawer { position:fixed; top:0; right:0; height:100dvh; width:300px; max-width:85vw; background:var(--panel); border:0; z-index:40; box-shadow:0 8px 40px rgba(0,0,0,.25); padding:16px; overflow-y:auto; overflow-x:hidden; }
 .drawer .btn { padding:8px 12px; }
@@ -432,7 +448,7 @@ function colOf(cal){
 
 /* ---------- actions ---------- */
 function toggleTheme(){ S.theme = S.theme==="dark"?"light":"dark"; saveAll(); render(); }
-function setView(v){ S.view=v; render(); window.scrollTo(0,0); }
+function setView(v){ S.view=v; PICKER=null; render(); window.scrollTo(0,0); }
 function scrollToNow(smooth){
   if(S.view!=="week") return;
   var nl=document.querySelector(".nowline");
@@ -494,6 +510,8 @@ function render(){
   var MODALKEY = DIALOG?"d":DETAIL?"t":SUBDIALOG?"s":SYNCDIALOG?"y":CALDIALOG?"c":SHAREFOR?"h":null;
   var MODAL_NEW = MODALKEY && MODALKEY!==PREV_MODALKEY;
   PREV_MODALKEY=MODALKEY;
+  var PICKER_NEW = PICKER && !PREV_PICKER;
+  PREV_PICKER=PICKER;
   document.documentElement.className = dark?"dark":"";
   var weekStart=addDays(startOfWeek(today), S.weekOffset*7);
   var weekDays=DAYS.map(function(_,i){ return addDays(weekStart,i); });
@@ -510,12 +528,42 @@ function render(){
   var weekTotal=weekDays.reduce(function(s,d){ return s+occsFor(dateKey(d)).filter(function(e){return !e.allDay;}).reduce(function(a,e){return a+e.dur;},0); },0);
 
   var h='<header><div class="hwrap">'
-   +'<div class="sub" style="font-size:17px;font-weight:600">'+(S.view==="week"
+   +'<button class="titlebtn sub" data-ptoggle="1" title="Maand kiezen" style="font-size:17px;font-weight:600">'+(S.view==="week"
       ? esc(weekDays[3].toLocaleDateString("nl-NL",{month:"long",year:"numeric"}))+' <span class="faint" style="font-size:12px;font-weight:400">· '+Math.round(weekTotal/60)+'u</span>'
-      : esc(S.monthCursor.toLocaleDateString("nl-NL",{month:"long",year:"numeric"})))+'</div>';
+      : esc(S.monthCursor.toLocaleDateString("nl-NL",{month:"long",year:"numeric"})))
+   +'<svg class="tchev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>';
   h+='<div class="row" style="gap:0"><button class="chevbtn" data-nav="-1" title="Vorige" aria-label="Vorige"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><button class="chevbtn" data-nav="1" title="Volgende" aria-label="Volgende"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button></div>';
   h+='<div class="row" style="margin-left:auto"><button class="todaybadge" data-nav="0" title="Vandaag"><span>'+today.getDate()+'</span></button>'
-   +'<button class="hamburger" data-drawer="1" aria-label="Menu"><svg width="22" height="22" viewBox="0 0 24 24"><rect class="bar" x="3" y="5" width="18" height="2.4" rx="1.2"/><rect class="bar" x="3" y="10.8" width="18" height="2.4" rx="1.2"/><rect class="bar" x="3" y="16.6" width="18" height="2.4" rx="1.2"/></svg></button></div></div></header>';
+   +'<button class="hamburger" data-drawer="1" aria-label="Menu"><svg width="22" height="22" viewBox="0 0 24 24"><rect class="bar" x="3" y="5" width="18" height="2.4" rx="1.2"/><rect class="bar" x="3" y="10.8" width="18" height="2.4" rx="1.2"/><rect class="bar" x="3" y="16.6" width="18" height="2.4" rx="1.2"/></svg></button></div></div>';
+
+  /* maandkiezer: dropdown onder de titel, met werkdag-bolletjes van de werkagenda */
+  if(PICKER){
+    var pc=PICKER_CURSOR||startOfMonth(today);
+    var pFirst=new Date(pc.getFullYear(),pc.getMonth(),1), pLead=(pFirst.getDay()+6)%7;
+    var pLast=new Date(pc.getFullYear(),pc.getMonth()+1,0).getDate();
+    var workCal=null;
+    for(var wi=0;wi<S.cals.length;wi++) if(S.cals[wi].id==="werk"){ workCal=S.cals[wi]; break; }
+    var workDays=new Set();
+    if(workCal && workCal.visible){
+      var wEv=S.events.filter(function(e){ return e.calId==="werk" && !e.allDay; });
+      S.subs.forEach(function(sb){ if(sb.calId==="werk") sb.events.forEach(function(e){ if(!e.allDay) wEv.push(e); }); });
+      expandOccurrences(wEv, pFirst, new Date(pc.getFullYear(),pc.getMonth()+1,1)).forEach(function(o){ workDays.add(o.occDate||o.date); });
+    }
+    h+='<div class="pscrim" data-pclose="1"></div><div class="picker'+(PICKER_NEW?" anim":"")+'">'
+     +'<div class="phead"><button class="btn iconbtn" data-pnav="-1" title="Vorige maand" aria-label="Vorige maand"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>'
+     +'<div class="sub" style="font-size:14px;font-weight:600;flex:1;text-align:center">'+esc(pc.toLocaleDateString("nl-NL",{month:"long",year:"numeric"}))+'</div>'
+     +'<button class="btn iconbtn" data-pnav="1" title="Volgende maand" aria-label="Volgende maand"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button></div>'
+     +'<div class="pgrid">';
+    DAYS_FULL.forEach(function(dn){ h+='<div class="ph">'+dn.slice(0,2)+'</div>'; });
+    for(var qi=0;qi<pLead;qi++) h+='<div></div>';
+    for(var qd=1;qd<=pLast;qd++){
+      var pd=new Date(pc.getFullYear(),pc.getMonth(),qd), pk=dateKey(pd), pT=pk===todayKey, pW=workDays.has(pk);
+      h+='<button class="pday" data-pday="'+pk+'" title="'+esc(pd.toLocaleDateString("nl-NL",{weekday:"long",day:"numeric",month:"long"}))+'">'
+       +(pT?'<span class="ptoday">'+qd+'</span>':qd)+(pW?'<span class="pdot"'+(workCal?' style="background:'+colOf(workCal).border+'"':'')+'></span>':'')+'</button>';
+    }
+    h+='</div></div>';
+  }
+  h+='</header>';
 
   h+='<div class="layout"><div>';
   if(S.view==="week"){
@@ -818,6 +866,19 @@ document.addEventListener("click", function(ev){
     else openSlot(dateKey(now), rounded);
     return;
   }
+  if(el=t.closest("[data-pclose]")) { PICKER=null; render(); return; }
+  if(el=t.closest("[data-ptoggle]")) {
+    if(!PICKER){ PICKER=true; PICKER_CURSOR = S.view==="week" ? startOfMonth(addDays(startOfWeek(today), S.weekOffset*7+3)) : new Date(S.monthCursor.getFullYear(),S.monthCursor.getMonth(),1); }
+    else PICKER=null;
+    render(); return;
+  }
+  if(el=t.closest("[data-pnav]")) { PICKER_CURSOR=new Date(PICKER_CURSOR.getFullYear(),PICKER_CURSOR.getMonth()+(+el.getAttribute("data-pnav")),1); render(); return; }
+  if(el=t.closest("[data-pday]")) {
+    var pdj=fromKey(el.getAttribute("data-pday"));
+    PICKER=null; S.monthCursor=startOfMonth(pdj);
+    if(S.view==="week") S.weekOffset=Math.round((startOfWeek(pdj)-startOfWeek(today))/(7*86400000));
+    render(); if(S.view!=="week") window.scrollTo(0,0); return;
+  }
   if(el=t.closest("[data-chk]")) { var e=findEvt(el.getAttribute("data-chk")); if(e){ ev.stopPropagation(); toggleDone(e, el.getAttribute("data-occ")); render(); } return; }
   if(el=t.closest("[data-evt]")) { var e2=findEvt(el.getAttribute("data-evt")); if(e2){ DETAIL={e:e2, dk:el.getAttribute("data-occ")}; CONFIRM_DEL=false; render(); } return; }
   if(el=t.closest(".slot")) { var col=el.closest("[data-day]"); if(col){ openSlot(col.getAttribute("data-day"), +el.getAttribute("data-start")); } return; }
@@ -947,9 +1008,12 @@ var PREV_MODALKEY=null; /* voorkomt herhalende modal-animatie/focus */
 var FABOPEN=false;
 var PLUSOPEN=false;
 var UNSUB_PEND=null; /* bevestiging iCal-abonnement verwijderen */
+var PICKER=false; /* maandkiezer open? */
+var PICKER_CURSOR=null; /* welk jaar-maand de kiezer toont */
+var PREV_PICKER=false; /* voorkomt herhalende pop-animatie */
 document.addEventListener("touchstart", function(ev){
   TOUCH_MOVED=false;
-  if(ev.touches.length!==1 || S.view!=="week" || DIALOG || DETAIL || DRAWER || SUBDIALOG || CALDIALOG) { SWIPE_X=null; return; }
+  if(ev.touches.length!==1 || S.view!=="week" || DIALOG || DETAIL || DRAWER || SUBDIALOG || CALDIALOG || PICKER) { SWIPE_X=null; return; }
   var t=ev.touches[0];
   // Swipe mag ook starten op afspraakblokken — tik-onderdrukking hieronder
   // zorgt dat een echte swipe nooit per ongeluk een afspraak opent.

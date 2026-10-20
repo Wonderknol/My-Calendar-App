@@ -126,7 +126,7 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .hamburger svg { display:block; }
 .hamburger .bar { fill:var(--header-ink); }
 .todaybadge { background:transparent; border:1.5px solid currentColor; border-radius:50%; width:var(--badge-d); height:var(--badge-d); padding:0; display:grid; place-items:center; cursor:pointer; font-size:calc(var(--badge-d)*0.45); font-weight:600; line-height:1; color:var(--header-ink); flex:none; }
-.todaybadge span { display:block; transform:translateY(-0.1em); }
+.todaybadge span { display:block; transform:translateY(-0.05em); }
 .todaybadge:hover { color:var(--primary); border-color:var(--primary); }
 .chevbtn { display:grid; place-items:center; width:36px; height:36px; background:none; border:0; cursor:pointer; border-radius:50%; padding:0; color:var(--header-ink); }
 .chevbtn:hover { background:var(--surface-container); color:var(--primary); }
@@ -161,7 +161,7 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .calli label { display:flex; align-items:center; gap:10px; flex:1; cursor:pointer; min-width:0; }
 .calcheck { appearance:none; -webkit-appearance:none; width:20px; height:20px; border:2.5px solid var(--cc,#999); border-radius:5px; background:transparent; cursor:pointer; flex:none; position:relative; transition:background .15s, border-color .15s; }
 .calcheck:checked { background:var(--cc); border-color:var(--cc); }
-.calcheck:checked::after { content:""; position:absolute; left:4.5px; top:0.5px; width:5px; height:10px; border:solid #fff; border-width:0 2.5px 2.5px 0; transform:rotate(45deg); }
+.calcheck:checked::after { content:""; position:absolute; left:4.5px; top:0px; width:5px; height:10px; border:solid #fff; border-width:0 2.5px 2.5px 0; transform:rotate(45deg); }
 .calli .nm { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; min-width:0; }
 .calli input { accent-color:var(--accent); flex:none; }
 .calswatch { width:32px; height:32px; border-radius:50%; border:0; cursor:pointer; position:relative; }

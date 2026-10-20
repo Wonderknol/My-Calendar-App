@@ -101,7 +101,6 @@ button, select, input, textarea { font:inherit; color:inherit; }
   .monthcard + .info-l { display:none; }
   .overlay { align-items:flex-start; padding:6vh 0 30vh; overflow-y:auto; }
   .modal { max-width:100%; border-radius:16px 16px 0 0; margin:0; }
-  .modal.settings { border-radius:0; max-width:100%; height:100dvh; max-height:100dvh; }
   .modal .modal-head { display:flex; align-items:flex-start; justify-content:space-between; }
 }
 .hour-label { height:28px; text-align:right; padding-right:4px; font-size:12px; color:var(--sub); border-top:1px solid var(--border-soft); }
@@ -148,7 +147,10 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .pday:hover { background:var(--surface-container); }
 .pnum { display:flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; font-size:12px; line-height:1; }
 .pnum.today { background:var(--primary); color:var(--on-primary); font-weight:600; }
-.pdot { width:4px; height:4px; border-radius:50%; background:transparent; margin-top:3px; }
+.pdots { height:4px; margin-top:3px; display:flex; align-items:center; justify-content:center; }
+.pdots .pdot { width:4px; height:4px; border-radius:50%; flex:none; margin-left:-1.5px; box-shadow:0 0 0 1px var(--panel); }
+.pdots .pdot:first-child { margin-left:0; }
+.pplus { font-size:9px; font-weight:700; color:var(--faint); margin-left:3px; line-height:1; }
 @media(max-width:999px){ .layout { grid-template-columns:1fr; } }
 .drawer { position:fixed; top:0; right:0; height:100dvh; width:300px; max-width:85vw; background:var(--panel); border:0; z-index:40; box-shadow:0 8px 40px rgba(0,0,0,.25); padding:16px; overflow-y:auto; overflow-x:hidden; }
 .drawer .btn { padding:8px 12px; }
@@ -193,8 +195,34 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .taskitem .x:hover { color:#f43f5e; }
 .overlay { position:fixed; inset:0; background:var(--overlay); display:grid; place-items:center; z-index:50; padding:16px; }
 .modal { background:var(--panel); border-radius:28px; box-shadow:0 24px 60px rgba(0,0,0,.25); padding:24px; width:100%; max-width:420px; display:flex; flex-direction:column; gap:12px; }
-.modal.settings { max-width:520px; max-height:calc(100dvh - 32px); overflow-y:auto; }
-.overlay.set-full { align-items:stretch; padding:0; }
+/* instellingen: fullscreen paneel dat vanaf rechts inschuift terwijl het raster meepant naar links */
+.appmain.panleft { animation:app-pan-out .32s cubic-bezier(.2,0,0,1) forwards; }
+@keyframes app-pan-out { to { transform:translateX(-22%); } }
+.appmain.panback { animation:app-pan-back .32s cubic-bezier(.2,0,0,1); }
+@keyframes app-pan-back { from { transform:translateX(-22%); } }
+.setpage { position:fixed; top:0; right:0; left:0; bottom:0; z-index:50; background:var(--bg); display:flex; flex-direction:column; }
+.setpage.anim-in { animation:setpage-in .32s cubic-bezier(.2,0,0,1); }
+@keyframes setpage-in { from { transform:translateX(100%); } }
+.setpage.anim-out { animation:setpage-out .32s cubic-bezier(.2,0,0,1) forwards; }
+@keyframes setpage-out { to { transform:translateX(100%); } }
+.sethead { display:flex; align-items:center; gap:6px; padding:10px 12px 10px 6px; border-bottom:1px solid var(--border-soft); }
+.settitle { font-size:19px; font-weight:600; }
+.setbody { flex:1; overflow-y:auto; padding:4px 16px 28px; width:100%; max-width:640px; margin:0 auto; }
+.setbody.anim-in { animation:set-slide-in .3s cubic-bezier(.2,0,0,1); }
+@keyframes set-slide-in { from { transform:translateX(60%); opacity:.4; } }
+.setbody.anim-back { animation:set-slide-back .3s cubic-bezier(.2,0,0,1); }
+@keyframes set-slide-back { from { transform:translateX(-18%); opacity:.4; } }
+.setlist { display:flex; flex-direction:column; gap:4px; margin-top:10px; }
+.setrow { display:flex; align-items:center; gap:12px; width:100%; background:none; border:0; padding:16px 12px; border-radius:16px; cursor:pointer; font-size:15px; color:var(--text); text-align:left; min-height:56px; }
+.setrow:hover { background:var(--surface-container); }
+.setrow .setlab { flex:1; display:flex; flex-direction:column; gap:3px; min-width:0; }
+.setrow .setval { font-size:12.5px; color:var(--sub); }
+.setrow .chev { color:var(--faint); flex:none; }
+.setopt { display:flex; align-items:center; gap:12px; width:100%; background:none; border:0; padding:14px 12px; border-radius:16px; cursor:pointer; font-size:14.5px; color:var(--text); text-align:left; }
+.setopt:hover { background:var(--surface-container); }
+.setopt .mark { flex:none; color:var(--primary); display:grid; place-items:center; }
+.setopt .cdot { width:12px; height:12px; border-radius:50%; flex:none; }
+.setlabel { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); margin:18px 2px 6px; }
 .modal h3 { font-size:16px; }
 .row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 .row .lbl { font-size:12px; color:var(--sub); margin-right:2px; }
@@ -427,7 +455,7 @@ function syncPull(quiet){
 function syncConnect(){
   var u = SYN_URL.trim().replace(/\/+$/,""), k = SYN_KEY.trim();
   if(!u || !k){ setInfo("Vul server-URL en sync-code in"); return; }
-  SYNC = { url: u, key: k }; store("ma-sync", SYNC); SETTINGS = false;
+  SYNC = { url: u, key: k }; store("ma-sync", SYNC); closeSettings();
   setInfo("Verbinding testen…");
   fetch(u + "/api/data?key=" + encodeURIComponent(k))
     .then(function(r){ if(r.status === 404) return null; if(!r.ok) throw new Error("status"); return r.json(); })
@@ -439,7 +467,7 @@ function syncConnect(){
     })
     .catch(function(){ SYNC_STATUS = "error"; setInfo("Verbinding mislukt – URL/code juist?"); });
 }
-function syncDisconnect(){ SYNC = null; store("ma-sync", null); SYNC_STATUS = "off"; SETTINGS = false; saveAll(); render(); }
+function syncDisconnect(){ SYNC = null; store("ma-sync", null); SYNC_STATUS = "off"; saveAll(); closeSettings(); }
 
 function saveAll(){ store("ma-theme",S.theme); store("ma-cals",S.cals); store("ma-events",S.events); store("ma-subs",S.subs); store("ma-tasks",S.tasks); syncQueuePush(); }
 function setInfo(msg){ INFO=msg; render(); if(msg) setTimeout(function(){ if(INFO===msg){ INFO=null; render(); } }, 3500); }
@@ -454,6 +482,10 @@ function colOf(cal){
 /* ---------- actions ---------- */
 function toggleTheme(){ S.theme = S.theme==="dark"?"light":"dark"; saveAll(); render(); }
 function setView(v){ S.view=v; PICKER=null; render(); window.scrollTo(0,0); }
+function openSettings(){ DRAWER=false; SETPAGE=null; SETTINGS=true; SETTINGS_ANIM=true; render(); requestAnimationFrame(function(){ SETTINGS_ANIM=false; }); }
+function closeSettings(){ SETPAGE=null; SETTINGS_ANIM="out"; render(); setTimeout(function(){ SETTINGS=false; SETTINGS_ANIM=false; render(); }, 300); }
+function openSetPage(p){ SETPAGE=p; SETPAGE_ANIM=true; render(); requestAnimationFrame(function(){ SETPAGE_ANIM=false; }); }
+function backSetPage(){ if(SETPAGE){ SETPAGE=null; SETPAGE_ANIM="back"; render(); requestAnimationFrame(function(){ SETPAGE_ANIM=false; }); } else if(SETTINGS) closeSettings(); }
 function scrollToNow(smooth){
   if(S.view!=="week") return;
   var nl=document.querySelector(".nowline");
@@ -532,7 +564,7 @@ function render(){
   var rows=(END_HOUR-START_HOUR)*60/SLOT_MIN;
   var weekTotal=weekDays.reduce(function(s,d){ return s+occsFor(dateKey(d)).filter(function(e){return !e.allDay;}).reduce(function(a,e){return a+e.dur;},0); },0);
 
-  var h='<header><div class="hwrap">'
+  var h='<div class="appmain'+(SETTINGS?(SETTINGS_ANIM==="out"?" panback":" panleft"):"")+'"><header><div class="hwrap">'
    +'<button class="titlebtn sub" data-ptoggle="1" title="Maand kiezen" style="font-size:17px;font-weight:600">'+(S.view==="week"
       ? esc(cap(weekDays[3].toLocaleDateString("nl-NL",{month:"long"})))+' <span class="faint" style="font-size:12px;font-weight:400">· '+Math.round(weekTotal/60)+'u</span>'
       : esc(cap(S.monthCursor.toLocaleDateString("nl-NL",{month:"long"}))))
@@ -547,12 +579,22 @@ function render(){
     var pFirst=new Date(pc.getFullYear(),pc.getMonth(),1), pLead=(pFirst.getDay()+6)%7;
     var pLast=new Date(pc.getFullYear(),pc.getMonth()+1,0).getDate();
     var workCal=null;
-    if(DOTCAL && DOTCAL!=="none") for(var wi=0;wi<S.cals.length;wi++) if(S.cals[wi].id===DOTCAL){ workCal=S.cals[wi]; break; }
+    if(DOTCAL && DOTCAL!=="none" && DOTCAL!=="all") for(var wi=0;wi<S.cals.length;wi++) if(S.cals[wi].id===DOTCAL){ workCal=S.cals[wi]; break; }
     var workDays=new Set();
     if(workCal && workCal.visible){
       var wEv=S.events.filter(function(e){ return e.calId===workCal.id && !e.allDay; });
       S.subs.forEach(function(sb){ if(sb.calId===workCal.id) sb.events.forEach(function(e){ if(!e.allDay) wEv.push(e); }); });
       expandOccurrences(wEv, pFirst, new Date(pc.getFullYear(),pc.getMonth()+1,1)).forEach(function(o){ workDays.add(o.occDate||o.date); });
+    }
+    /* "Alle agenda's": bolletje per agenda met afspraak die dag (max. 3 + plusteken) */
+    var dayDots={};
+    if(DOTCAL==="all"){
+      S.cals.forEach(function(c){
+        if(!c.visible) return;
+        var ev=S.events.filter(function(e){ return e.calId===c.id && !e.allDay; });
+        S.subs.forEach(function(sb){ if(sb.calId===c.id) sb.events.forEach(function(e){ if(!e.allDay) ev.push(e); }); });
+        expandOccurrences(ev, pFirst, new Date(pc.getFullYear(),pc.getMonth()+1,1)).forEach(function(o){ var k=o.occDate||o.date; (dayDots[k]=dayDots[k]||[]).push(colOf(c).border); });
+      });
     }
     h+='<div class="pscrim" data-pclose="1"></div><div class="picker'+(PICKER_NEW?" anim":"")+'">'
      +'<div class="phead"><button class="btn iconbtn" data-pnav="-1" title="Vorige maand" aria-label="Vorige maand"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>'
@@ -562,10 +604,11 @@ function render(){
     DAYS_FULL.forEach(function(dn){ h+='<div class="ph">'+dn.slice(0,2)+'</div>'; });
     for(var qi=0;qi<pLead;qi++) h+='<div></div>';
     for(var qd=1;qd<=pLast;qd++){
-      var pd=new Date(pc.getFullYear(),pc.getMonth(),qd), pk=dateKey(pd), pT=pk===todayKey, pW=workDays.has(pk);
+      var pd=new Date(pc.getFullYear(),pc.getMonth(),qd), pk=dateKey(pd), pT=pk===todayKey;
+      var dts = DOTCAL==="all" ? (dayDots[pk]||[]) : (workDays.has(pk)&&workCal ? [colOf(workCal).border] : []);
       h+='<button class="pday" data-pday="'+pk+'" title="'+esc(pd.toLocaleDateString("nl-NL",{weekday:"long",day:"numeric",month:"long"}))+'">'
        +'<span class="pnum'+(pT?" today":"")+'">'+qd+'</span>'
-       +'<span class="pdot"'+(pW&&workCal?' style="background:'+colOf(workCal).border+'"':'')+'></span></button>';
+       +'<span class="pdots">'+dts.slice(0,3).map(function(dc){ return '<span class="pdot" style="background:'+dc+'"></span>'; }).join("")+(dts.length>3?'<span class="pplus">+</span>':'')+'</span></button>';
     }
     h+='</div></div>';
   }
@@ -636,6 +679,7 @@ function render(){
     h+='</div></div>';
   }
   h+='<p class="info-l">Klik op een leeg slot om in te plannen · klik op een afspraak voor details · sleep om te verplaatsen</p></div>';
+  h+='</div>'; /* einde appmain */
   h+='<div class="fabwrap'+(FABOPEN?' open':'')+'">'
    +'<div class="fabscrim" data-fabclose="1"></div>'
    +'<button class="fabopt" data-fabopt="task">Taak</button>'
@@ -795,32 +839,52 @@ function render(){
     h+='</div></div>';
   }
 
-  /* instellingenvenster: alles bij elkaar — maandkiezer + synchronisatie */
+  /* instellingenvenster: fullscreen paneel met deelpagina's */
   if(SETTINGS){
-    h+='<div class="overlay set-full" data-close="settings"><div class="modal settings"'+(MODAL_NEW?" anim":"")+'>'
-     +'<div class="row" style="align-items:center"><h3 style="flex:1">Instellingen</h3>'
-     +'<button class="btn iconbtn" data-close="settings" aria-label="Sluiten"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>'
-     +'<div><div class="k">Bolletjes in de maandkiezer</div>'
-     +'<select class="txt" id="dotcalsel">'
-     +'<option value="none"'+(DOTCAL==="none"?" selected":"")+'>Geen agenda (geen bolletjes)</option>'
-     +S.cals.map(function(c){ return '<option value="'+c.id+'"'+(DOTCAL===c.id?" selected":"")+'>'+esc(c.name)+'</option>'; }).join("")
-     +'</select>'
-     +'<p class="faint small" style="margin-top:6px">De gekozen agenda krijgt een bolletje onder de datum op dagen met een afspraak (hele-dag-items tellen niet mee). De bolletjes krijgen de kleur van de agenda en verschijnen alleen als die agenda aangevinkt is.</p></div>'
-     +'<div style="border-top:1px solid var(--border-soft);padding-top:14px">'
-     +'<div class="k">Synchronisatie</div>'
-     +(SYNC?'<p class="small sub" style="margin-bottom:8px">Verbonden met <b>'+esc(SYNC.url.replace(/^https?:\/\//,""))+'</b> · code: '+esc(SYNC.key.slice(0,2))+'•••</p>':'')
-     +'<p class="sub small">Vul de URL van je server in en kies een geheime sync-code. Gebruik dezelfde code op elk apparaat om dezelfde agenda te zien. De code werkt als wachtwoord: kies iets langs en deel het alleen met jezelf (en eventueel je vriendin).</p>'
-     +'<input class="txt" id="synurl" placeholder="Server-URL (bv. http://192.168.1.20:8181)" value="'+esc(SYN_URL)+'"/>'
-     +'<input class="txt" id="synkey" placeholder="Sync-code (min. 6 tekens)" value="'+esc(SYN_KEY)+'"/>'
-     +'<div class="row" style="justify-content:flex-end;flex-wrap:wrap">'
-     +(SYNC?'<button class="btn danger" data-syncoff="1">Verbinding verbreken</button>':"")
-     +'<button class="btn on" id="synsave">Verbinden</button></div></div>'
-     +'</div></div>';
+    var setTitle = SETPAGE==="dots" ? "Bolletjes in de maandkiezer" : SETPAGE==="sync" ? "Synchronisatie" : "Instellingen";
+    var setAnim = SETTINGS_ANIM===true ? " anim-in" : SETTINGS_ANIM==="out" ? " anim-out" : "";
+    var bodyAnim = SETPAGE_ANIM===true ? " anim-in" : SETPAGE_ANIM==="back" ? " anim-back" : "";
+    h+='<div class="setpage'+setAnim+'">'
+     +'<div class="sethead">'
+     +'<button class="btn iconbtn" data-setback="1" aria-label="Terug"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>'
+     +'<div class="settitle">'+esc(setTitle)+'</div></div>'
+     +'<div class="setbody'+bodyAnim+'">';
+    if(!SETPAGE){
+      var dcal=S.cals.filter(function(c){return c.id===DOTCAL;})[0];
+      var dotLab=DOTCAL==="all"?"Alle agenda's":(DOTCAL==="none"||!dcal)?"Geen bolletjes":dcal.name;
+      var chev='<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+      h+='<div class="setlist">'
+       +'<button class="setrow" data-setpage="dots"><span class="setlab"><span>Bolletjes in de maandkiezer</span><span class="setval">'+esc(dotLab)+'</span></span>'+chev+'</button>'
+       +'<button class="setrow" data-setpage="sync"><span class="setlab"><span>Synchronisatie</span><span class="setval">'+(SYNC?"Verbonden":"Niet ingesteld")+'</span></span>'+chev+'</button>'
+       +'</div>';
+    }
+    if(SETPAGE==="dots"){
+      var mark=function(sel){ return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/>'+(sel?'<circle cx="12" cy="12" r="4.5" fill="currentColor" stroke="none"/>':'')+'</svg>'; };
+      var setopt=function(val,label,color,sel){ return '<button class="setopt" data-dotopt="'+val+'"><span class="mark">'+mark(sel)+'</span>'+(color?'<span class="cdot" style="background:'+color+'"></span>':'')+'<span>'+esc(label)+'</span></button>'; };
+      h+='<div class="setlist">'
+       +setopt("none","Geen bolletjes",null,DOTCAL==="none")
+       +setopt("all","Alle agenda's",null,DOTCAL==="all")
+       +S.cals.map(function(c){ return setopt(c.id,c.name,colOf(c).border,DOTCAL===c.id); }).join("")
+       +'</div>';
+    }
+    if(SETPAGE==="sync"){
+      h+='<div class="setlabel">Server-URL</div>'
+       +'<input class="txt" id="synurl" placeholder="Server-URL" value="'+esc(SYN_URL)+'"/>'
+       +'<div class="setlabel">Sync-code</div>'
+       +'<input class="txt" id="synkey" placeholder="Sync-code" value="'+esc(SYN_KEY)+'"/>'
+       +'<div class="row" style="justify-content:flex-end;flex-wrap:wrap;margin-top:20px">'
+       +(SYNC?'<button class="btn danger" data-syncoff="1">Verbinding verbreken</button>':"")
+       +'<button class="btn on" id="synsave">Verbinden</button></div>';
+    }
+    h+='</div></div>';
   }
 
   var dwOld=document.querySelector(".drawer"), dwScroll=dwOld?dwOld.scrollTop:0;
+  var sbOld=document.querySelector(".setbody"), sbScroll=sbOld?sbOld.scrollTop:0;
   document.getElementById("app").innerHTML=h;
   if(DRAWER && dwScroll){ var dwNew=document.querySelector(".drawer"); if(dwNew) dwNew.scrollTop=dwScroll; }
+  if(SETTINGS && sbScroll){ var sbNew=document.querySelector(".setbody"); if(sbNew) sbNew.scrollTop=sbScroll; }
+  document.body.style.overflow = SETTINGS ? "hidden" : "";
 
   /* modal-animatie: alleen bij vers openen, niet bij elke herberekening */
 
@@ -925,11 +989,10 @@ document.addEventListener("click", function(ev){
   if(el=t.closest("[data-dur]")) { D_DUR=+el.getAttribute("data-dur"); render(); return; }
   if(el=t.closest("[data-allday]")) { D_ALLDAY=el.checked; render(); return; }
   if(el=t.closest("[data-recur]")) { D_RECUR=+el.getAttribute("data-recur"); render(); return; }
-  if(t.getAttribute && t.getAttribute("data-close")) {
-    var k=t.getAttribute("data-close");
+  if(el=t.closest("[data-close]")) {
+    var k=el.getAttribute("data-close");
     if(k==="detail") DETAIL=null; if(k==="dialog") DIALOG=null; if(k==="sub") SUBDIALOG=false;
     if(k==="share") SHAREFOR=null; if(k==="caldialog"){ CALDIALOG=false; EDITCAL=null; }
-    if(k==="settings") SETTINGS=false;
     render(); return;
   }
   if(el=t.closest("[data-view]")) { setView(el.getAttribute("data-view")); return; }
@@ -948,7 +1011,10 @@ document.addEventListener("click", function(ev){
     return;
   }
   if(t.id==="synsave") { syncConnect(); return; }
-  if(el=t.closest("[data-syncset]")) { SYN_URL = SYNC?SYNC.url:""; SYN_KEY = SYNC?SYNC.key:""; SETTINGS=true; render(); return; }
+  if(el=t.closest("[data-setback]")) { backSetPage(); return; }
+  if(el=t.closest("[data-setpage]")) { openSetPage(el.getAttribute("data-setpage")); return; }
+  if(el=t.closest("[data-dotopt]")) { DOTCAL=el.getAttribute("data-dotopt"); store("ma-dotcal",DOTCAL); render(); return; }
+  if(el=t.closest("[data-syncset]")) { SYN_URL = SYNC?SYNC.url:""; SYN_KEY = SYNC?SYNC.key:""; openSettings(); return; }
   if(el=t.closest("[data-syncoff]")) { syncDisconnect(); return; }
   if(el=t.closest("[data-syncnow]")) { syncPull(false); return; }
   if(t.id==="newcalsave") { var inp=document.getElementById("newcal"); if(inp&&inp.value.trim()) addCal(inp.value); return; }
@@ -991,7 +1057,6 @@ document.addEventListener("change", function(ev){
   if(t.id==="evtdate" && t.value) DIALOG.date=t.value;
   if(t.id==="evttime" && t.value){ var p=t.value.split(":"); DIALOG.start=(+p[0])*60+(+p[1]); }
   if(t.id==="subcal") SUB_CAL=t.value;
-  if(t.id==="dotcalsel"){ DOTCAL=t.value; store("ma-dotcal",DOTCAL); render(); }
 });
 
 /* drag & drop */
@@ -1020,7 +1085,7 @@ document.addEventListener("drop", function(ev){
 });
 
 /* tick + escape */
-setInterval(function(){ S.now=new Date(); if(!DIALOG && !DETAIL && !DRAWER) render(); }, 60000);
+setInterval(function(){ S.now=new Date(); if(!DIALOG && !DETAIL && !DRAWER && !SETTINGS) render(); }, 60000);
 /* swipe links/rechts = week wisselen (weekweergave) + tik-onderdrukking na scrollen */
 var SWIPE_X=null, SWIPE_Y=null, SWIPE_T=null, TOUCH_MOVED=false, CLICK_SUPPRESS=false;
 var DRAWER_ANIM=false; /* true=inkomen, "out"=weggaan, false=stil */
@@ -1031,8 +1096,11 @@ var UNSUB_PEND=null; /* bevestiging iCal-abonnement verwijderen */
 var PICKER=false; /* maandkiezer open? */
 var PICKER_CURSOR=null; /* welk jaar-maand de kiezer toont */
 var PREV_PICKER=false; /* voorkomt herhalende pop-animatie */
-var DOTCAL=load("ma-dotcal","werk"); /* agenda-id voor de bolletjes in de maandkiezer (instelbaar in Instellingen) */
+var DOTCAL=load("ma-dotcal","werk"); /* agenda-id voor de bolletjes in de maandkiezer: id | "all" | "none" (instelbaar in Instellingen) */
 var SETTINGS=false; /* instellingenvenster open? */
+var SETTINGS_ANIM=false; /* true=inschuiven, "out"=uitschuiven, false=stil */
+var SETPAGE=null; /* subpagina in Instellingen: null | "dots" | "sync" */
+var SETPAGE_ANIM=false; /* true=subpagina inschuiven, "back"=terug naar hoofdpagina */
 document.addEventListener("touchstart", function(ev){
   TOUCH_MOVED=false;
   if(ev.touches.length!==1 || S.view!=="week" || DIALOG || DETAIL || DRAWER || SUBDIALOG || CALDIALOG || PICKER) { SWIPE_X=null; return; }
@@ -1066,7 +1134,7 @@ document.addEventListener("focusin", function(ev){
     if(m){ setTimeout(function(){ if(m.classList.contains("settings")) t.scrollIntoView({block:"center", behavior:"smooth"}); else m.scrollIntoView({block:"start", behavior:"smooth"}); }, 350); }
   }
 });
-document.addEventListener("keydown", function(ev){ if(ev.key==="Escape"){ DIALOG=null; DETAIL=null; SHAREFOR=null; SUBDIALOG=false; CALDIALOG=false; SETTINGS=false; CONFIRM_DEL=false; CONFIRM_CAL=null; DRAWER=false; FABOPEN=false; PLUSOPEN=false; render(); } });
+document.addEventListener("keydown", function(ev){ if(ev.key==="Escape"){ if(SETTINGS){ backSetPage(); return; } DIALOG=null; DETAIL=null; SHAREFOR=null; SUBDIALOG=false; CALDIALOG=false; CONFIRM_DEL=false; CONFIRM_CAL=null; DRAWER=false; FABOPEN=false; PLUSOPEN=false; render(); } });
 render();
 scrollToNow(false); /* bij opstarten meteen naar de rode nu-lijn scrollen */
 if(SYNC){

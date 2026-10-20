@@ -509,7 +509,7 @@ function downloadICS(cal){
 function render(){
   var dark=S.theme==="dark";
   /* modal-animatie: alleen bij vers openen, niet bij elke herberekening */
-  var MODALKEY = DIALOG?"d":DETAIL?"t":SUBDIALOG?"s":SYNCDIALOG?"y":CALDIALOG?"c":SHAREFOR?"h":null;
+  var MODALKEY = DIALOG?"d":DETAIL?"t":SUBDIALOG?"s":SYNCDIALOG?"y":CALDIALOG?"c":SHAREFOR?"h":SETTINGS?"i":null;
   var MODAL_NEW = MODALKEY && MODALKEY!==PREV_MODALKEY;
   PREV_MODALKEY=MODALKEY;
   var PICKER_NEW = PICKER && !PREV_PICKER;
@@ -544,11 +544,11 @@ function render(){
     var pFirst=new Date(pc.getFullYear(),pc.getMonth(),1), pLead=(pFirst.getDay()+6)%7;
     var pLast=new Date(pc.getFullYear(),pc.getMonth()+1,0).getDate();
     var workCal=null;
-    for(var wi=0;wi<S.cals.length;wi++) if(S.cals[wi].id==="werk"){ workCal=S.cals[wi]; break; }
+    if(DOTCAL && DOTCAL!=="none") for(var wi=0;wi<S.cals.length;wi++) if(S.cals[wi].id===DOTCAL){ workCal=S.cals[wi]; break; }
     var workDays=new Set();
     if(workCal && workCal.visible){
-      var wEv=S.events.filter(function(e){ return e.calId==="werk" && !e.allDay; });
-      S.subs.forEach(function(sb){ if(sb.calId==="werk") sb.events.forEach(function(e){ if(!e.allDay) wEv.push(e); }); });
+      var wEv=S.events.filter(function(e){ return e.calId===workCal.id && !e.allDay; });
+      S.subs.forEach(function(sb){ if(sb.calId===workCal.id) sb.events.forEach(function(e){ if(!e.allDay) wEv.push(e); }); });
       expandOccurrences(wEv, pFirst, new Date(pc.getFullYear(),pc.getMonth()+1,1)).forEach(function(o){ workDays.add(o.occDate||o.date); });
     }
     h+='<div class="pscrim" data-pclose="1"></div><div class="picker'+(PICKER_NEW?" anim":"")+'">'
@@ -691,7 +691,10 @@ function render(){
     h+='<p class="faint small" style="margin-bottom:8px">Verbind met je eigen server om je agenda op al je apparaten te delen – en om live webcal-abonnementen (Rostar/I-call, UGent) te laten werken.</p>'
      +'<button class="btn wide small on" data-syncset="1">🔗 Synchronisatie instellen</button>';
   }
-  h+='</div>'+(DRAWER?'</div>':'</aside>')+'</div>';
+  h+='</div>';
+  h+='<div class="drawer-sec" style="border-top:1px solid var(--border-soft);margin-top:16px;padding-top:12px"><span class="section-title">Instellingen</span>'
+   +'<button class="btn wide small" data-settings="1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-3px;margin-right:4px"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>Open instellingen</button></div>';
+  h+=(DRAWER?'</div>':'</aside>')+'</div>';
 
   /* detail modal */
   if(DETAIL){
@@ -801,6 +804,18 @@ function render(){
      +(SYNC?'<button class="btn danger" data-syncoff="1">Verbinding verbreken</button>':"")
      +'<button class="btn" data-close="sync">Annuleren</button>'
      +'<button class="btn on" id="synsave">Verbinden</button></div></div></div>';
+  }
+
+  /* instellingenvenster */
+  if(SETTINGS){
+    h+='<div class="overlay" data-close="settings"><div class="modal"'+(MODAL_NEW?" anim":"")+'><h3>Instellingen</h3>'
+     +'<div><div class="k">Bolletjes in de maandkiezer</div>'
+     +'<select class="txt" id="dotcalsel">'
+     +'<option value="none"'+(DOTCAL==="none"?" selected":"")+'>Geen agenda (geen bolletjes)</option>'
+     +S.cals.map(function(c){ return '<option value="'+c.id+'"'+(DOTCAL===c.id?" selected":"")+'>'+esc(c.name)+'</option>'; }).join("")
+     +'</select>'
+     +'<p class="faint small" style="margin-top:6px">De gekozen agenda krijgt een bolletje onder de datum op dagen met een afspraak (hele-dag-items tellen niet mee). De bolletjes krijgen de kleur van de agenda en verschijnen alleen als die agenda aangevinkt is.</p></div>'
+     +'<div class="row" style="justify-content:flex-end"><button class="btn on" data-close="settings">Klaar</button></div></div></div>';
   }
 
   document.getElementById("app").innerHTML=h;
@@ -914,6 +929,7 @@ document.addEventListener("click", function(ev){
     if(k==="detail") DETAIL=null; if(k==="dialog") DIALOG=null; if(k==="sub") SUBDIALOG=false;
     if(k==="share") SHAREFOR=null; if(k==="caldialog"){ CALDIALOG=false; EDITCAL=null; }
     if(k==="sync") SYNCDIALOG=false;
+    if(k==="settings") SETTINGS=false;
     render(); return;
   }
   if(el=t.closest("[data-view]")) { setView(el.getAttribute("data-view")); return; }
@@ -933,6 +949,7 @@ document.addEventListener("click", function(ev){
   }
   if(t.id==="synsave") { syncConnect(); return; }
   if(el=t.closest("[data-syncset]")) { SYN_URL = SYNC?SYNC.url:""; SYN_KEY = SYNC?SYNC.key:""; SYNCDIALOG=true; render(); return; }
+  if(el=t.closest("[data-settings]")) { SETTINGS=true; render(); return; }
   if(el=t.closest("[data-syncoff]")) { syncDisconnect(); return; }
   if(el=t.closest("[data-syncnow]")) { syncPull(false); return; }
   if(t.id==="newcalsave") { var inp=document.getElementById("newcal"); if(inp&&inp.value.trim()) addCal(inp.value); return; }
@@ -975,6 +992,7 @@ document.addEventListener("change", function(ev){
   if(t.id==="evtdate" && t.value) DIALOG.date=t.value;
   if(t.id==="evttime" && t.value){ var p=t.value.split(":"); DIALOG.start=(+p[0])*60+(+p[1]); }
   if(t.id==="subcal") SUB_CAL=t.value;
+  if(t.id==="dotcalsel"){ DOTCAL=t.value; store("ma-dotcal",DOTCAL); render(); }
 });
 
 /* drag & drop */
@@ -1014,6 +1032,8 @@ var UNSUB_PEND=null; /* bevestiging iCal-abonnement verwijderen */
 var PICKER=false; /* maandkiezer open? */
 var PICKER_CURSOR=null; /* welk jaar-maand de kiezer toont */
 var PREV_PICKER=false; /* voorkomt herhalende pop-animatie */
+var DOTCAL=load("ma-dotcal","werk"); /* agenda-id voor de bolletjes in de maandkiezer (instelbaar in Instellingen) */
+var SETTINGS=false; /* instellingenvenster open? */
 document.addEventListener("touchstart", function(ev){
   TOUCH_MOVED=false;
   if(ev.touches.length!==1 || S.view!=="week" || DIALOG || DETAIL || DRAWER || SUBDIALOG || CALDIALOG || PICKER) { SWIPE_X=null; return; }
@@ -1047,7 +1067,7 @@ document.addEventListener("focusin", function(ev){
     if(m){ setTimeout(function(){ m.scrollIntoView({block:"start", behavior:"smooth"}); }, 350); }
   }
 });
-document.addEventListener("keydown", function(ev){ if(ev.key==="Escape"){ DIALOG=null; DETAIL=null; SHAREFOR=null; SUBDIALOG=false; CALDIALOG=false; SYNCDIALOG=false; CONFIRM_DEL=false; CONFIRM_CAL=null; DRAWER=false; FABOPEN=false; PLUSOPEN=false; render(); } });
+document.addEventListener("keydown", function(ev){ if(ev.key==="Escape"){ DIALOG=null; DETAIL=null; SHAREFOR=null; SUBDIALOG=false; CALDIALOG=false; SYNCDIALOG=false; SETTINGS=false; CONFIRM_DEL=false; CONFIRM_CAL=null; DRAWER=false; FABOPEN=false; PLUSOPEN=false; render(); } });
 render();
 scrollToNow(false); /* bij opstarten meteen naar de rode nu-lijn scrollen */
 if(SYNC){

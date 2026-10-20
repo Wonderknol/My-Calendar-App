@@ -995,10 +995,13 @@ document.addEventListener("click", function(ev){
   if(el=t.closest("[data-allday]")) { D_ALLDAY=el.checked; render(); return; }
   if(el=t.closest("[data-recur]")) { D_RECUR=+el.getAttribute("data-recur"); render(); return; }
   if(el=t.closest("[data-close]")) {
-    var k=el.getAttribute("data-close");
-    if(k==="detail") DETAIL=null; if(k==="dialog") DIALOG=null; if(k==="sub") SUBDIALOG=false;
-    if(k==="share") SHAREFOR=null; if(k==="caldialog"){ CALDIALOG=false; EDITCAL=null; }
-    render(); return;
+    /* alleen sluiten bij tik op de scrim zélf of op een echte sluitknop — niet bij kliks ín het venster */
+    if(el===t || el.tagName==="BUTTON"){
+      var k=el.getAttribute("data-close");
+      if(k==="detail") DETAIL=null; if(k==="dialog") DIALOG=null; if(k==="sub") SUBDIALOG=false;
+      if(k==="share") SHAREFOR=null; if(k==="caldialog"){ CALDIALOG=false; EDITCAL=null; }
+      render(); return;
+    }
   }
   if(el=t.closest("[data-view]")) { setView(el.getAttribute("data-view")); return; }
   if(el=t.closest("[data-nav]")) { var n=+el.getAttribute("data-nav"); if(n===0) goToday(); else nav(n); return; }

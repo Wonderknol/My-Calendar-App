@@ -20,6 +20,8 @@
   --surface-container:#EFEAF4; --surface-container-high:#E7E0EC;
   --btn-bg:#EFEAF4; --btn-border:transparent; --btn-hover:#E7E0EC;
   --today-bg:transparent; --slot-hover:#E8DEF8; --chip:#EFEAF4; --overlay:rgba(28,25,23,.5);
+  --header-ink:#8F8797; /* zachte kopkleur: minder contrast dan --sub, zodat de header niet om aandacht vraagt */
+  --badge-d:22px; /* doorsnee vandaag-badge: font en centrering schalen automatisch mee via deze ene variabele */
 }
 .dark {
   --bg:#141218; --panel:#1D1B20; --border:#49454F; --border-soft:#2B2930;
@@ -31,10 +33,12 @@
   --btn-bg:#211F26; --btn-border:#49454F; --btn-hover:#2B2930;
   --today-bg:transparent; --slot-hover:#4A4458; --chip:#211F26;
   --overlay:rgba(0,0,0,.5);
+  --header-ink:#A6A0AE; /* zachte kopkleur: geen fel wit in donkere modus */
 }
 * { box-sizing:border-box; margin:0; }
 body { font-family:"Roboto Flex",Roboto,-apple-system,"SF Pro Text","Segoe UI",system-ui,sans-serif; background:var(--bg); color:var(--text); }
 header { background:var(--panel); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20; }
+header .sub { color:var(--header-ink); }
 .hwrap { max-width:1200px; margin:0 auto; padding:12px 16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .logo { width:32px; height:32px; border-radius:8px; background:var(--accent); color:#fff; display:grid; place-items:center; font-weight:700; }
 h1 { font-size:18px; font-weight:600; }
@@ -117,13 +121,14 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .mgrid .mh { padding:8px 0; text-align:center; font-size:11px; text-transform:uppercase; color:var(--sub); border-bottom:1px solid var(--border); }
 .mcell { min-height:92px; border-bottom:1px solid var(--border-soft); border-right:1px solid var(--border-soft); padding:4px; }
 /* mobiel */
-.hamburger { display:grid; place-items:center; width:44px; height:44px; background:none; border:0; cursor:pointer; border-radius:50%; padding:0; color:var(--sub); }
+.hamburger { display:grid; place-items:center; width:44px; height:44px; background:none; border:0; cursor:pointer; border-radius:50%; padding:0; color:var(--header-ink); }
 .hamburger:hover { background:var(--surface-container); }
 .hamburger svg { display:block; }
-.hamburger .bar { fill:var(--sub); }
-.todaybadge { background:transparent; border:1.5px solid currentColor; border-radius:50%; width:26px; height:26px; display:grid; place-items:center; cursor:pointer; font-size:11px; font-weight:600; color:var(--sub); flex:none; }
+.hamburger .bar { fill:var(--header-ink); }
+.todaybadge { background:transparent; border:1.5px solid currentColor; border-radius:50%; width:var(--badge-d); height:var(--badge-d); padding:0; display:grid; place-items:center; cursor:pointer; font-size:calc(var(--badge-d)*0.45); font-weight:600; line-height:1; color:var(--header-ink); flex:none; }
+.todaybadge span { display:block; transform:translateY(-0.1em); }
 .todaybadge:hover { color:var(--primary); border-color:var(--primary); }
-.chevbtn { display:grid; place-items:center; width:36px; height:36px; background:none; border:0; cursor:pointer; border-radius:50%; padding:0; color:var(--sub); }
+.chevbtn { display:grid; place-items:center; width:36px; height:36px; background:none; border:0; cursor:pointer; border-radius:50%; padding:0; color:var(--header-ink); }
 .chevbtn:hover { background:var(--surface-container); color:var(--primary); }
 .chevbtn svg { display:block; }
 @media(max-width:999px){ .layout { grid-template-columns:1fr; } }
@@ -156,7 +161,7 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .calli label { display:flex; align-items:center; gap:10px; flex:1; cursor:pointer; min-width:0; }
 .calcheck { appearance:none; -webkit-appearance:none; width:20px; height:20px; border:2.5px solid var(--cc,#999); border-radius:5px; background:transparent; cursor:pointer; flex:none; position:relative; transition:background .15s, border-color .15s; }
 .calcheck:checked { background:var(--cc); border-color:var(--cc); }
-.calcheck:checked::after { content:""; position:absolute; left:4.5px; top:1.5px; width:5px; height:10px; border:solid #fff; border-width:0 2.5px 2.5px 0; transform:rotate(45deg); }
+.calcheck:checked::after { content:""; position:absolute; left:4.5px; top:0.5px; width:5px; height:10px; border:solid #fff; border-width:0 2.5px 2.5px 0; transform:rotate(45deg); }
 .calli .nm { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; min-width:0; }
 .calli input { accent-color:var(--accent); flex:none; }
 .calswatch { width:32px; height:32px; border-radius:50%; border:0; cursor:pointer; position:relative; }
@@ -509,7 +514,7 @@ function render(){
       ? esc(weekDays[3].toLocaleDateString("nl-NL",{month:"long",year:"numeric"}))+' <span class="faint" style="font-size:12px;font-weight:400">· '+Math.round(weekTotal/60)+'u</span>'
       : esc(S.monthCursor.toLocaleDateString("nl-NL",{month:"long",year:"numeric"})))+'</div>';
   h+='<div class="row" style="gap:0"><button class="chevbtn" data-nav="-1" title="Vorige" aria-label="Vorige"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><button class="chevbtn" data-nav="1" title="Volgende" aria-label="Volgende"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button></div>';
-  h+='<div class="row" style="margin-left:auto"><button class="todaybadge" data-nav="0" title="Vandaag">'+today.getDate()+'</button>'
+  h+='<div class="row" style="margin-left:auto"><button class="todaybadge" data-nav="0" title="Vandaag"><span>'+today.getDate()+'</span></button>'
    +'<button class="hamburger" data-drawer="1" aria-label="Menu"><svg width="22" height="22" viewBox="0 0 24 24"><rect class="bar" x="3" y="5" width="18" height="2.4" rx="1.2"/><rect class="bar" x="3" y="10.8" width="18" height="2.4" rx="1.2"/><rect class="bar" x="3" y="16.6" width="18" height="2.4" rx="1.2"/></svg></button></div></div></header>';
 
   h+='<div class="layout"><div>';

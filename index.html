@@ -103,7 +103,9 @@ button, select, input, textarea { font:inherit; color:inherit; }
   .modal { max-width:100%; border-radius:16px 16px 0 0; margin:0; }
   .modal .modal-head { display:flex; align-items:flex-start; justify-content:space-between; }
 }
-.hour-label { height:28px; text-align:right; padding-right:4px; font-size:12px; color:var(--sub); border-top:1px solid var(--border-soft); }
+.hour-label { height:28px; font-size:12px; color:var(--sub); }
+.hour-label span { display:block; text-align:center; transform:translateY(-50%); }
+.hour-label span.first { transform:none; }
 .slot { height:28px; border-top:1px solid var(--border-soft); cursor:pointer; }
 .slot:hover { background:var(--slot-hover); }
 .slot.odd { border-top-width:0; }
@@ -636,7 +638,7 @@ function render(){
       h+='</div>';
     });
     h+='</div><div class="grid-body"><div>';
-    for(var r=0;r<rows;r++) h+='<div class="hour-label" style="border-top-width:'+(r%2===0?1:0)+'px">'+(r%2===0?fmtTime(START_HOUR*60+r*SLOT_MIN):"")+'</div>';
+    for(var r=0;r<rows;r++) h+='<div class="hour-label">'+(r%2===0?'<span'+(r===0?' class="first"':'')+'>'+fmtTime(START_HOUR*60+r*SLOT_MIN)+'</span>':"")+'</div>';
     h+='</div>';
     weekDays.forEach(function(d){
       var isT=sameDay(d,today), dk=dateKey(d);

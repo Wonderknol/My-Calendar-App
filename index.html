@@ -561,7 +561,7 @@ function render(){
   var rows=(END_HOUR-START_HOUR)*60/SLOT_MIN;
   var weekTotal=weekDays.reduce(function(s,d){ return s+occsFor(dateKey(d)).filter(function(e){return !e.allDay;}).reduce(function(a,e){return a+e.dur;},0); },0);
 
-  var h='<div class="appmain'+(SETTINGS && !SETTINGS_ANIM ? " panleft" : "")+'"><header><div class="hwrap">'
+  var h='<div class="appmain'+(SETTINGS && (SETTINGS_ANIM===false || SETTINGS_ANIM==="out") ? " panleft" : "")+'"><header><div class="hwrap">'
    +'<button class="titlebtn sub" data-ptoggle="1" title="Maand kiezen" style="font-size:17px;font-weight:600">'+(S.view==="week"
       ? esc(cap(weekDays[3].toLocaleDateString("nl-NL",{month:"long"})))+' <span class="faint" style="font-size:12px;font-weight:400">· '+Math.round(weekTotal/60)+'u</span>'
       : esc(cap(S.monthCursor.toLocaleDateString("nl-NL",{month:"long"}))))
@@ -895,8 +895,12 @@ function render(){
     }); });
   }
   if(SETTINGS && SETTINGS_ANIM==="out"){
+    /* Bij sluiten worden appmain en setpage opnieuw opgebouwd door render().
+       Laat beide daarom eerst in hun beginstand schilderen en start daarna
+       beide transitions in hetzelfde frame. */
     requestAnimationFrame(function(){ requestAnimationFrame(function(){
       var sp=document.querySelector(".setpage"); if(sp) sp.classList.add("pre");
+      var am=document.querySelector(".appmain"); if(am) am.classList.remove("panleft");
     }); });
   }
   if(SETTINGS && (SETPAGE_ANIM===true || SETPAGE_ANIM==="back")){

@@ -154,7 +154,8 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .pdots .pdot:first-child { margin-left:0; }
 .pplus { font-size:9px; font-weight:700; color:var(--faint); margin-left:3px; line-height:1; }
 @media(max-width:999px){ .layout { grid-template-columns:1fr; } }
-.drawer { position:fixed; top:0; right:0; height:100dvh; width:300px; max-width:85vw; background:var(--panel); border:0; z-index:40; box-shadow:0 8px 40px rgba(0,0,0,.25); padding:16px; overflow-y:auto; overflow-x:hidden; }
+.drawer { position:fixed; top:0; right:0; height:100dvh; width:300px; max-width:85vw; background:var(--panel); border:0; z-index:40; box-shadow:0 8px 40px rgba(0,0,0,.25); padding:16px; overflow-y:auto; overflow-x:hidden; transition:transform .32s cubic-bezier(.2,0,0,1); }
+.drawer.panleft { transform:translateX(-22vw); }
 .drawer .btn { padding:8px 12px; }
 .drawer .btn.iconbtn { padding:7px; width:36px; height:36px; }
 .drawer.anim-in { animation:drawer-in .3s cubic-bezier(.2,0,0,1); }
@@ -199,8 +200,7 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .modal { background:var(--panel); border-radius:28px; box-shadow:0 24px 60px rgba(0,0,0,.25); padding:24px; width:100%; max-width:420px; display:flex; flex-direction:column; gap:12px; }
 /* instellingen: fullscreen paneel dat vanaf rechts inschuift terwijl het raster meepant naar links */
 /* transitions i.p.v. keyframes: Firefox startte keyframes bij het invoegen, maar de eerste paint van een zware herberekening duurde langer dan de animatie zelf → inschuiven leek overgeslagen. De klassen worden nu pas ná de eerste paint gewisseld (zie render). */
-.appmain { transition:transform .32s cubic-bezier(.2,0,0,1); }
-.appmain.panleft { transform:translateX(-22%); }
+.appmain { transition:none; }
 .setpage { position:fixed; top:0; right:0; left:0; bottom:0; z-index:50; background:var(--bg); display:flex; flex-direction:column; transition:transform .32s cubic-bezier(.2,0,0,1); }
 .setpage.pre { transform:translateX(100%); }
 .sethead { display:flex; align-items:center; gap:6px; padding:10px 12px 10px 6px; border-bottom:1px solid var(--border-soft); }
@@ -561,7 +561,7 @@ function render(){
   var rows=(END_HOUR-START_HOUR)*60/SLOT_MIN;
   var weekTotal=weekDays.reduce(function(s,d){ return s+occsFor(dateKey(d)).filter(function(e){return !e.allDay;}).reduce(function(a,e){return a+e.dur;},0); },0);
 
-  var h='<div class="appmain'+(SETTINGS && (SETTINGS_ANIM===false || SETTINGS_ANIM==="out") ? " panleft" : "")+'"><header><div class="hwrap">'
+  var h='<div class="appmain"><header><div class="hwrap">'
    +'<button class="titlebtn sub" data-ptoggle="1" title="Maand kiezen" style="font-size:17px;font-weight:600">'+(S.view==="week"
       ? esc(cap(weekDays[3].toLocaleDateString("nl-NL",{month:"long"})))+' <span class="faint" style="font-size:12px;font-weight:400">· '+Math.round(weekTotal/60)+'u</span>'
       : esc(cap(S.monthCursor.toLocaleDateString("nl-NL",{month:"long"}))))
@@ -685,7 +685,7 @@ function render(){
    +'<button class="fab" data-fab="1" title="Nieuw" aria-label="Nieuw"><span class="fplus"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></button></div>';
 
   /* sidebar */
-  h+=(DRAWER?'<div class="drawer-back'+(DRAWER_ANIM===true?' anim-in':DRAWER_ANIM==="out"?' anim-out':'')+'" data-drawer-close="1"></div><div class="drawer'+(DRAWER_ANIM===true?' anim-in':DRAWER_ANIM==="out"?' anim-out':'')+'">'
+  h+=(DRAWER?'<div class="drawer-back'+(DRAWER_ANIM===true?' anim-in':DRAWER_ANIM==="out"?' anim-out':'')+'" data-drawer-close="1"></div><div class="drawer'+(SETTINGS && (SETTINGS_ANIM===false || SETTINGS_ANIM==="out")?' panleft':'')+(DRAWER_ANIM===true?' anim-in':DRAWER_ANIM==="out"?' anim-out':'')+'">'
    +'<div class="row" style="margin-bottom:4px;flex-wrap:nowrap"><button class="btn'+(S.view==="week"?" on":"")+'" data-view="week">Week</button>'
    +'<button class="btn'+(S.view==="month"?" on":"")+'" data-view="month">Maand</button>'
    +'<button class="btn iconbtn" data-theme="1" title="Donkere/lichte modus">'+(dark
@@ -887,7 +887,7 @@ function render(){
   if(SETTINGS && SETTINGS_ANIM===true){
     requestAnimationFrame(function(){ requestAnimationFrame(function(){
       var sp=document.querySelector(".setpage"); if(sp && sp.classList.contains("pre")) sp.classList.remove("pre");
-      var am=document.querySelector(".appmain"); if(am && SETTINGS_ANIM===false) am.classList.add("panleft");
+      var dw=document.querySelector(".drawer"); if(dw && SETTINGS_ANIM===false) dw.classList.add("panleft");
       /* hamburgermenu pas weghalen als het paneel het scherm volledig heeft overgenomen: geruisloos DOM verwijderen, geen render */
       if(DRAWER && SETTINGS && SETTINGS_ANIM===false){ setTimeout(function(){ DRAWER=false; DRAWER_ANIM=false;
         if(SETTINGS){ var db=document.querySelector(".drawer-back"), dd=document.querySelector(".drawer"); if(db) db.remove(); if(dd) dd.remove(); }
@@ -901,7 +901,7 @@ function render(){
        beide transitions in hetzelfde frame. */
     requestAnimationFrame(function(){ requestAnimationFrame(function(){
       var sp=document.querySelector(".setpage"); if(sp) sp.classList.add("pre");
-      var am=document.querySelector(".appmain"); if(am) am.classList.remove("panleft");
+      var dw=document.querySelector(".drawer"); if(dw) dw.classList.remove("panleft");
     }); });
   }
   if(SETTINGS && (SETPAGE_ANIM===true || SETPAGE_ANIM==="back")){

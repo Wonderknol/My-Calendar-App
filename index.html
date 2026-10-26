@@ -198,23 +198,17 @@ button, select, input, textarea { font:inherit; color:inherit; }
 .overlay { position:fixed; inset:0; background:var(--overlay); display:grid; place-items:center; z-index:50; padding:16px; }
 .modal { background:var(--panel); border-radius:28px; box-shadow:0 24px 60px rgba(0,0,0,.25); padding:24px; width:100%; max-width:420px; display:flex; flex-direction:column; gap:12px; }
 /* instellingen: fullscreen paneel dat vanaf rechts inschuift terwijl het raster meepant naar links */
-.appmain.panleft { animation:app-pan-out .32s cubic-bezier(.2,0,0,1) forwards; }
-@keyframes app-pan-out { to { transform:translateX(-22%); } }
-.appmain.panback { animation:app-pan-back .32s cubic-bezier(.2,0,0,1); }
-@keyframes app-pan-back { from { transform:translateX(-22%); } }
-.setpage { position:fixed; top:0; right:0; left:0; bottom:0; z-index:50; background:var(--bg); display:flex; flex-direction:column; }
-.setpage.anim-in { animation:setpage-in .32s cubic-bezier(.2,0,0,1); }
-@keyframes setpage-in { from { transform:translateX(100%); } }
-.setpage.anim-out { animation:setpage-out .32s cubic-bezier(.2,0,0,1) forwards; }
-@keyframes setpage-out { to { transform:translateX(100%); } }
+/* transitions i.p.v. keyframes: Firefox startte keyframes bij het invoegen, maar de eerste paint van een zware herberekening duurde langer dan de animatie zelf → inschuiven leek overgeslagen. De klassen worden nu pas ná de eerste paint gewisseld (zie render). */
+.appmain { transition:transform .32s cubic-bezier(.2,0,0,1); }
+.appmain.panleft { transform:translateX(-22%); }
+.setpage { position:fixed; top:0; right:0; left:0; bottom:0; z-index:50; background:var(--bg); display:flex; flex-direction:column; transition:transform .32s cubic-bezier(.2,0,0,1); }
+.setpage.pre { transform:translateX(100%); }
 .sethead { display:flex; align-items:center; gap:6px; padding:10px 12px 10px 6px; border-bottom:1px solid var(--border-soft); }
 .sethead .iconbtn { background:none; }
 .settitle { font-size:19px; font-weight:600; }
-.setbody { flex:1; overflow-y:auto; padding:4px 16px 28px; width:100%; max-width:640px; margin:0 auto; }
-.setbody.anim-in { animation:set-slide-in .3s cubic-bezier(.2,0,0,1); }
-@keyframes set-slide-in { from { transform:translateX(60%); opacity:.4; } }
-.setbody.anim-back { animation:set-slide-back .3s cubic-bezier(.2,0,0,1); }
-@keyframes set-slide-back { from { transform:translateX(-18%); opacity:.4; } }
+.setbody { flex:1; overflow-y:auto; padding:4px 16px 28px; width:100%; max-width:640px; margin:0 auto; transition:transform .3s cubic-bezier(.2,0,0,1), opacity .3s; }
+.setbody.anim-in { transform:translateX(60%); opacity:.4; }
+.setbody.anim-back { transform:translateX(-18%); opacity:.4; }
 .setlist { display:flex; flex-direction:column; gap:4px; margin-top:10px; }
 .setrow { display:flex; align-items:center; gap:12px; width:100%; background:none; border:0; padding:16px 12px; border-radius:16px; cursor:pointer; font-size:15px; color:var(--text); text-align:left; min-height:56px; }
 .setrow:hover { background:var(--surface-container); }
@@ -485,16 +479,8 @@ function colOf(cal){
 /* ---------- actions ---------- */
 function toggleTheme(){ S.theme = S.theme==="dark"?"light":"dark"; saveAll(); render(); }
 function setView(v){ S.view=v; PICKER=null; render(); window.scrollTo(0,0); }
-function openSettings(){ SETPAGE=null; SETTINGS=true; SETTINGS_ANIM=true; render(); requestAnimationFrame(function(){ SETTINGS_ANIM=false; });
-  /* hamburgermenu pas weghalen als het paneel het scherm volledig heeft overgenomen.
-     Geen render hier (die herbouwt het paneel midden in de animatie → animatie wordt overgeslagen):
-     de drawer-DOM zit achter het fullscreen paneel, dus geruisloos verwijderen zonder herberekening. */
-  if(DRAWER){ setTimeout(function(){
-    DRAWER=false; DRAWER_ANIM=false;
-    if(SETTINGS){ var db=document.querySelector(".drawer-back"), dd=document.querySelector(".drawer"); if(db) db.remove(); if(dd) dd.remove(); }
-    else render();
-  }, 400); } }
-function closeSettings(){ SETPAGE=null; SETTINGS_ANIM="out"; render(); setTimeout(function(){ SETTINGS=false; SETTINGS_ANIM=false; render(); }, 300); }
+function openSettings(){ SETPAGE=null; SETTINGS=true; SETTINGS_ANIM=true; render(); requestAnimationFrame(function(){ SETTINGS_ANIM=false; }); }
+function closeSettings(){ SETPAGE=null; SETTINGS_ANIM="out"; render(); setTimeout(function(){ SETTINGS=false; SETTINGS_ANIM=false; render(); }, 340); }
 function openSetPage(p){ SETPAGE=p; SETPAGE_ANIM=true; render(); requestAnimationFrame(function(){ SETPAGE_ANIM=false; }); }
 function backSetPage(){ if(SETPAGE){ SETPAGE=null; SETPAGE_ANIM="back"; render(); requestAnimationFrame(function(){ SETPAGE_ANIM=false; }); } else if(SETTINGS) closeSettings(); }
 function scrollToNow(smooth){
@@ -575,7 +561,7 @@ function render(){
   var rows=(END_HOUR-START_HOUR)*60/SLOT_MIN;
   var weekTotal=weekDays.reduce(function(s,d){ return s+occsFor(dateKey(d)).filter(function(e){return !e.allDay;}).reduce(function(a,e){return a+e.dur;},0); },0);
 
-  var h='<div class="appmain'+(SETTINGS?(SETTINGS_ANIM==="out"?" panback":" panleft"):"")+'"><header><div class="hwrap">'
+  var h='<div class="appmain'+(SETTINGS && !SETTINGS_ANIM ? " panleft" : "")+'"><header><div class="hwrap">'
    +'<button class="titlebtn sub" data-ptoggle="1" title="Maand kiezen" style="font-size:17px;font-weight:600">'+(S.view==="week"
       ? esc(cap(weekDays[3].toLocaleDateString("nl-NL",{month:"long"})))+' <span class="faint" style="font-size:12px;font-weight:400">· '+Math.round(weekTotal/60)+'u</span>'
       : esc(cap(S.monthCursor.toLocaleDateString("nl-NL",{month:"long"}))))
@@ -853,7 +839,7 @@ function render(){
   /* instellingenvenster: fullscreen paneel met deelpagina's */
   if(SETTINGS){
     var setTitle = SETPAGE==="dots" ? "Bolletjes in de maandkiezer" : SETPAGE==="sync" ? "Synchronisatie" : "Instellingen";
-    var setAnim = SETTINGS_ANIM===true ? " anim-in" : SETTINGS_ANIM==="out" ? " anim-out" : "";
+    var setAnim = SETTINGS_ANIM===true ? " pre" : "";
     var bodyAnim = SETPAGE_ANIM===true ? " anim-in" : SETPAGE_ANIM==="back" ? " anim-back" : "";
     h+='<div class="setpage'+setAnim+'">'
      +'<div class="sethead">'
@@ -896,6 +882,28 @@ function render(){
   if(DRAWER && dwScroll){ var dwNew=document.querySelector(".drawer"); if(dwNew) dwNew.scrollTop=dwScroll; }
   if(SETTINGS && sbScroll){ var sbNew=document.querySelector(".setbody"); if(sbNew) sbNew.scrollTop=sbScroll; }
   document.body.style.overflow = SETTINGS ? "hidden" : "";
+  /* animaties starten pas ná de eerste paint (dubbele rAF): bij het invoegen starten betekende dat Firefox Android ze af had voor er één frame geverfd was */
+  if(SETTINGS && SETTINGS_ANIM===true){
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){
+      var sp=document.querySelector(".setpage"); if(sp && sp.classList.contains("pre")) sp.classList.remove("pre");
+      var am=document.querySelector(".appmain"); if(am && SETTINGS_ANIM===false) am.classList.add("panleft");
+      /* hamburgermenu pas weghalen als het paneel het scherm volledig heeft overgenomen: geruisloos DOM verwijderen, geen render */
+      if(DRAWER && SETTINGS && SETTINGS_ANIM===false){ setTimeout(function(){ DRAWER=false; DRAWER_ANIM=false;
+        if(SETTINGS){ var db=document.querySelector(".drawer-back"), dd=document.querySelector(".drawer"); if(db) db.remove(); if(dd) dd.remove(); }
+        else render();
+      }, 400); }
+    }); });
+  }
+  if(SETTINGS && SETTINGS_ANIM==="out"){
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){
+      var sp=document.querySelector(".setpage"); if(sp) sp.classList.add("pre");
+    }); });
+  }
+  if(SETTINGS && (SETPAGE_ANIM===true || SETPAGE_ANIM==="back")){
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){
+      var sb=document.querySelector(".setbody"); if(sb){ sb.classList.remove("anim-in"); sb.classList.remove("anim-back"); }
+    }); });
+  }
 
   /* modal-animatie: alleen bij vers openen, niet bij elke herberekening */
 

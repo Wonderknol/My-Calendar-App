@@ -486,8 +486,14 @@ function colOf(cal){
 function toggleTheme(){ S.theme = S.theme==="dark"?"light":"dark"; saveAll(); render(); }
 function setView(v){ S.view=v; PICKER=null; render(); window.scrollTo(0,0); }
 function openSettings(){ SETPAGE=null; SETTINGS=true; SETTINGS_ANIM=true; render(); requestAnimationFrame(function(){ SETTINGS_ANIM=false; });
-  /* hamburgermenu pas sluiten als het paneel het scherm heeft overgenomen (geen animatie — zit er al achter) */
-  if(DRAWER){ setTimeout(function(){ DRAWER=false; DRAWER_ANIM=false; render(); }, 340); } }
+  /* hamburgermenu pas weghalen als het paneel het scherm volledig heeft overgenomen.
+     Geen render hier (die herbouwt het paneel midden in de animatie → animatie wordt overgeslagen):
+     de drawer-DOM zit achter het fullscreen paneel, dus geruisloos verwijderen zonder herberekening. */
+  if(DRAWER){ setTimeout(function(){
+    DRAWER=false; DRAWER_ANIM=false;
+    if(SETTINGS){ var db=document.querySelector(".drawer-back"), dd=document.querySelector(".drawer"); if(db) db.remove(); if(dd) dd.remove(); }
+    else render();
+  }, 400); } }
 function closeSettings(){ SETPAGE=null; SETTINGS_ANIM="out"; render(); setTimeout(function(){ SETTINGS=false; SETTINGS_ANIM=false; render(); }, 300); }
 function openSetPage(p){ SETPAGE=p; SETPAGE_ANIM=true; render(); requestAnimationFrame(function(){ SETPAGE_ANIM=false; }); }
 function backSetPage(){ if(SETPAGE){ SETPAGE=null; SETPAGE_ANIM="back"; render(); requestAnimationFrame(function(){ SETPAGE_ANIM=false; }); } else if(SETTINGS) closeSettings(); }

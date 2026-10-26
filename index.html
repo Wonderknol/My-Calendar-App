@@ -409,7 +409,7 @@ var S = {
 };
 var DIALOG=null, DETAIL=null, SHAREFOR=null, SUBDIALOG=false, CALDIALOG=false, EDITCAL=null,
     CONFIRM_DEL=false, CONFIRM_CAL=null, INFO=null, DRAWER=false,
-    D_INPUT="", D_DUR=60, D_CAL="", D_RECUR=0, D_ALLDAY=false, SUB_URL="", SUB_CAL="", NEWCAL="",
+    D_INPUT="", D_DUR=60, D_CAL="", D_RECUR=0, D_ALLDAY=false, D_KIND="event", EDIT_EVENT_ID=null, SUB_URL="", SUB_CAL="", NEWCAL="",
     DRAG_ID=null, DRAG_TASK=false;
 var today = new Date();
 /* migratie: eerder geïmporteerde hele-dag-items (24u-blokken) herkennen */
@@ -493,12 +493,31 @@ function scrollToNow(smooth){
 }
 function nav(d){ if(S.view==="week") S.weekOffset+=d; else S.monthCursor=new Date(S.monthCursor.getFullYear(), S.monthCursor.getMonth()+d, 1); render(); }
 function goToday(){ S.weekOffset=0; S.monthCursor=startOfMonth(new Date()); render(); setTimeout(function(){ scrollToNow(true); }, 50); }
-function openSlot(dk,start){ D_INPUT=""; D_DUR=60; D_RECUR=0; D_ALLDAY=false; D_CAL=S.cals[0].id; CONFIRM_DEL=false; DIALOG={date:dk,start:start}; render(); }
+function openSlot(dk,start){ D_INPUT=""; D_DUR=60; D_RECUR=0; D_ALLDAY=false; D_KIND="event"; EDIT_EVENT_ID=null; D_CAL=S.cals[0].id; CONFIRM_DEL=false; DIALOG={date:dk,start:start}; render(); }
+function openNewItem(kind, dk, start){
+  D_INPUT=""; D_DUR=60; D_RECUR=0; D_ALLDAY=(kind==="task"); D_KIND=kind;
+  EDIT_EVENT_ID=null; D_CAL=S.cals[0].id; CONFIRM_DEL=false; DIALOG={date:dk,start:start}; render();
+}
+function editEvent(e, dk){
+  if(!e || e.external) return;
+  DETAIL=null; CONFIRM_DEL=false;
+  D_KIND=e.kind || "event"; EDIT_EVENT_ID=e.id;
+  D_INPUT=e.title || ""; D_DUR=e.dur || 60; D_CAL=e.calId || S.cals[0].id;
+  D_RECUR=e.recur ? e.recur.weeks : 0; D_ALLDAY=!!e.allDay;
+  DIALOG={date:dk || e.date, start:e.start || 0};
+  render();
+}
 function saveEvent(){
-  if(!D_INPUT.trim()) return;
-  S.events.push({ id:newId(), calId:D_CAL, date:DIALOG.date, start:D_ALLDAY?0:DIALOG.start, dur:D_ALLDAY?1440:D_DUR,
-    title:D_INPUT.trim(), doneDates:[], recur: D_RECUR>0?{weeks:D_RECUR}:null, allDay:D_ALLDAY });
-  DIALOG=null; saveAll(); render();
+  if(!D_INPUT.trim() || !DIALOG) return;
+  var values={ calId:D_CAL, date:DIALOG.date, start:D_ALLDAY?0:DIALOG.start, dur:D_ALLDAY?1440:D_DUR,
+    title:D_INPUT.trim(), recur:D_RECUR>0?{weeks:D_RECUR}:null, allDay:D_ALLDAY, kind:D_KIND };
+  if(EDIT_EVENT_ID){
+    var existing=S.events.filter(function(e){return e.id===EDIT_EVENT_ID;})[0];
+    if(existing) Object.keys(values).forEach(function(k){ existing[k]=values[k]; });
+  } else {
+    values.id=newId(); values.doneDates=[]; S.events.push(values);
+  }
+  DIALOG=null; EDIT_EVENT_ID=null; saveAll(); render();
 }
 function toggleDone(e,dk){
   if(e.external) return;
@@ -624,8 +643,8 @@ function render(){
       var allday=occsFor(dk).filter(function(e){return e.allDay;});
       h+='<div class="adc" data-aday="'+dk+'"'+(allday.length?"":' style="min-height:6px"')+'>';
       allday.forEach(function(e){
-        var col=colOf(calById(e.calId));
-        h+='<div class="allday" style="background:'+col.border+'" data-evt="'+e.id+'" data-occ="'+dk+'"'+(e.external?"":' draggable="true"')+' title="'+esc(e.title)+' (hele dag)">'+esc(e.title)+'</div>';
+        var col=colOf(calById(e.calId)), done=(e.doneDates||[]).indexOf(dk)>=0;
+        h+='<div class="allday'+(done?' done':'')+'" style="background:'+col.border+';'+(done?'opacity:.55;':'')+'" data-evt="'+e.id+'" data-occ="'+dk+'"'+(e.external?"":' draggable="true"')+' title="'+esc(e.title)+' (hele dag)"><span class="'+(done?'strike':'')+'">'+esc(e.title)+'</span></div>';
       });
       h+='</div>';
     });
@@ -644,8 +663,7 @@ function render(){
         var top=((e.start-START_HOUR*60)/60)*PX_PER_HOUR, hh=(e.dur/60)*PX_PER_HOUR-4;
         var col=colOf(calById(e.calId)), done=(e.doneDates||[]).indexOf(dk)>=0;
         h+='<div class="evt'+(done?" done":"")+'" style="top:'+top+'px;height:'+Math.max(hh,18)+'px;background:'+col.border+';color:inherit" data-evt="'+e.id+'" data-occ="'+dk+'"'+(e.external?"":' draggable="true"')+'>'
-         +'<div class="t">'+(e.external?"":'<button class="chk'+(done?" checked":"")+'" data-chk="'+e.id+'" data-occ="'+dk+'" title="Afvinken"></button>')
-         +'<span class="'+(done?"strike":"")+'">'+esc(e.title)+'</span></div>'
+         +'<div class="t"><span class="'+(done?"strike":"")+'">'+esc(e.title)+'</span></div>'
          +(e.dur>=60?'<div class="m"><span>'+fmtTime(e.start)+'–'+fmtTime(e.start+e.dur)+'</span>'+(e.recur?'<span title="Herhaalt elke '+e.recur.weeks+' weken">↻'+e.recur.weeks+'w</span>':"")+'</div>':"")
          +'</div>';
       });
@@ -745,7 +763,7 @@ function render(){
     var col2=colOf(c);
     h+='<div class="overlay" data-close="detail"><div class="modal"'+(MODAL_NEW?" anim":"")+'>'
      +'<div class="row" style="align-items:flex-start"><span class="dot" style="background:'+col2.border+';margin-top:6px"></span>'
-     +'<div style="flex:1"><h3 style="font-size:18px">'+esc(e.title)+'</h3><div class="sub small">'+esc(c.name)+'</div></div>'
+     +'<div style="flex:1"><h3 style="font-size:18px">'+esc(e.title)+'</h3><div class="sub small">'+(e.kind==="task"?"Taak":"Afspraak")+' · '+esc(c.name)+'</div></div>'
      +'<button class="btn iconbtn" data-close="detail" aria-label="Sluiten"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>'
      +'<div class="detail-grid">'
      +'<div><div class="k">Datum</div><b>'+esc(d.toLocaleDateString("nl-NL",{weekday:"long",day:"numeric",month:"long",year:"numeric"}))+'</b></div>'
@@ -758,9 +776,10 @@ function render(){
     if(e.external) h+='<p class="faint small">Vanuit een ICS-abonnement of import – niet bewerkbaar.</p>';
     else {
       h+='<div class="row" style="justify-content:flex-end;flex-wrap:wrap">'
-       +'<button class="btn" data-toggledone="1">'+(done
+       +'<button class="btn" data-editevent="1">Bewerken</button>'
+       +(e.kind==="task"?'<button class="btn" data-toggledone="1">'+(done
           ?'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>Niet gedaan'
-          :'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>Afgerond')+'</button>'
+          :'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>Afgerond')+'</button>':'')
        +(CONFIRM_DEL
           ? '<button class="btn danger" data-delyes="1">Zeker weten?</button>'
           : '<button class="btn danger" data-del="1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>Verwijderen'+(e.recur?" (reeks)":"")+'</button>')
@@ -772,9 +791,9 @@ function render(){
   /* add dialog */
   if(DIALOG){
     h+='<div class="overlay" data-close="dialog"><div class="modal"'+(MODAL_NEW?" anim":"")+'>'
-     +'<div class="modal-head"><div><div class="faint small">'+esc(nlDate(fromKey(DIALOG.date)))+' · '+fmtTime(DIALOG.start)+'</div><h3>Inplannen</h3></div>'
-     +'<div class="row"><button class="btn iconbtn" data-close="dialog" aria-label="Sluiten"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button><button class="btn on" id="evtsave">Inplannen</button></div></div>'
-     +'<input class="txt" id="evttitle" placeholder="Wat wil je doen?" value="'+esc(D_INPUT)+'"/>'
+     +'<div class="modal-head"><div><div class="faint small">'+esc(nlDate(fromKey(DIALOG.date)))+' · '+(D_ALLDAY?"Hele dag":fmtTime(DIALOG.start))+'</div><h3>'+(EDIT_EVENT_ID?(D_KIND==="task"?"Taak bewerken":"Afspraak bewerken"):(D_KIND==="task"?"Nieuwe taak":"Nieuwe afspraak"))+'</h3></div>'
+     +'<div class="row"><button class="btn iconbtn" data-close="dialog" aria-label="Sluiten"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button><button class="btn on" id="evtsave">'+(EDIT_EVENT_ID?"Opslaan":"Aanmaken")+'</button></div></div>'
+     +'<input class="txt" id="evttitle" placeholder="'+(D_KIND==="task"?"Welke taak?":"Welke afspraak?")+'" value="'+esc(D_INPUT)+'"/>'
      +'<div class="row"><span class="lbl">Wanneer</span>'
      +'<input type="date" class="txt" id="evtdate" value="'+DIALOG.date+'" style="flex:1;width:auto"/>'
      +'<input type="time" class="txt" id="evttime" value="'+pad(Math.floor(DIALOG.start/60))+":"+pad(DIALOG.start%60)+'" style="flex:1;width:auto'+(D_ALLDAY?';display:none':'')+'"/></div>'
@@ -969,8 +988,8 @@ document.addEventListener("click", function(ev){
     var now=new Date();
     var rounded=Math.ceil(((now.getHours()*60+now.getMinutes())/30))*30; // eerstvolgend half uur
     if(rounded>=END_HOUR*60) rounded=9*60;
-    if(el.getAttribute("data-fabopt")==="task"){ openSlot(dateKey(now), rounded); D_ALLDAY=true; D_INPUT=""; render(); }
-    else openSlot(dateKey(now), rounded);
+    if(el.getAttribute("data-fabopt")==="task") openNewItem("task", dateKey(now), rounded);
+    else openNewItem("event", dateKey(now), rounded);
     return;
   }
   if(el=t.closest("[data-pclose]")) { PICKER=null; render(); return; }
@@ -986,7 +1005,6 @@ document.addEventListener("click", function(ev){
     if(S.view==="week") S.weekOffset=Math.round((startOfWeek(pdj)-startOfWeek(today))/(7*86400000));
     render(); if(S.view!=="week") window.scrollTo(0,0); return;
   }
-  if(el=t.closest("[data-chk]")) { var e=findEvt(el.getAttribute("data-chk")); if(e){ ev.stopPropagation(); toggleDone(e, el.getAttribute("data-occ")); render(); } return; }
   if(el=t.closest("[data-evt]")) { var e2=findEvt(el.getAttribute("data-evt")); if(e2){ DETAIL={e:e2, dk:el.getAttribute("data-occ")}; CONFIRM_DEL=false; render(); } return; }
   if(el=t.closest(".slot")) { var col=el.closest("[data-day]"); if(col){ openSlot(col.getAttribute("data-day"), +el.getAttribute("data-start")); } return; }
   if(el=t.closest("[data-mday]") && !t.closest("[data-evt]")) { openSlot(el.getAttribute("data-mday"), 9*60); return; }
@@ -1007,6 +1025,7 @@ document.addEventListener("click", function(ev){
   if(el=t.closest("[data-unsub-n]")) { UNSUB_PEND=null; render(); return; }
   if(el=t.closest("[data-unsub-y]")) { var uid=el.getAttribute("data-unsub-y"); S.subs=S.subs.filter(function(x){return x.id!==uid;}); UNSUB_PEND=null; saveAll(); render(); return; }
   if(el=t.closest("[data-deltask]")) { S.tasks=S.tasks.filter(function(x){return x.id!==el.getAttribute("data-deltask");}); saveAll(); render(); return; }
+  if(el=t.closest("[data-editevent]")) { if(DETAIL) editEvent(DETAIL.e, DETAIL.dk); return; }
   if(el=t.closest("[data-del]")) { CONFIRM_DEL=true; render(); return; }
   if(el=t.closest("[data-delyes]")) { if(DETAIL){ deleteEvent(DETAIL.e.id); DETAIL=null; CONFIRM_DEL=false; render(); } return; }
   if(el=t.closest("[data-toggledone]")) { if(DETAIL){ toggleDone(DETAIL.e, DETAIL.dk); DETAIL=null; render(); } return; }

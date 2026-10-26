@@ -676,7 +676,8 @@ function render(){
     h+='</div></div>';
   }
   h+='<p class="info-l">Klik op een leeg slot om in te plannen · klik op een afspraak voor details · sleep om te verplaatsen</p></div>';
-  h+='</div>'; /* einde appmain */
+  h+='</div>'; /* einde layout */
+  h+='</div>'; /* einde appmain: drawer en instellingen moeten buiten het getransformeerde appmain-element staan */
   h+='<div class="fabwrap'+(FABOPEN?' open':'')+'">'
    +'<div class="fabscrim" data-fabclose="1"></div>'
    +'<button class="fabopt" data-fabopt="task">Taak</button>'
